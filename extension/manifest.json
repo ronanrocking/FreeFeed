@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "FreeFeed",
+  "version": "0.2.0",
+  "description": "Tests configurable visibility rules for the Instagram web interface.",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "css": ["styles.css"],
+      "js": ["settings.js", "content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

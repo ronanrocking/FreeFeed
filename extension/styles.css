@@ -1,0 +1,20 @@
+.freefeed-loading body {
+  visibility: hidden !important;
+}
+
+.freefeed-hidden {
+  display: none !important;
+}
+
+.freefeed-hide-feed main div:has(> article),
+.freefeed-hide-feed main article,
+.freefeed-hide-feed main [role="progressbar"] {
+  display: none !important;
+}
+
+html.freefeed-hide-feed,
+html.freefeed-hide-feed body.freefeed-hide-feed {
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  overscroll-behavior: none;
+}
