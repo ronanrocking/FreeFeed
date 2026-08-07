@@ -11,6 +11,11 @@ const elementVisibility = { ...DEFAULT_VISIBILITY };
 const HIDDEN_CLASS = "freefeed-hidden";
 const FEED_HIDDEN_CLASS = "freefeed-hide-feed";
 const LOADING_CLASS = "freefeed-loading";
+const DASHBOARD_ID = "freefeed-dashboard";
+const DASHBOARD_ACTIVE_CLASS = "freefeed-dashboard-active";
+const RETURN_ID = "freefeed-return";
+let nativeWorkflowActive = false;
+let unrestrictedMode = false;
 const SCROLL_KEYS = new Set([
   "ArrowDown",
   "ArrowUp",
@@ -187,6 +192,130 @@ function findMessagesOverlay() {
   return overlayButton ? [overlayButton] : [];
 }
 
+function dashboardAction(icon, label, action) {
+  return `
+    <button class="freefeed-action" type="button" data-freefeed-action="${action}" aria-label="${label}" title="${label}">
+      ${icon}
+      <span>${label}</span>
+    </button>
+  `;
+}
+
+function createDashboard() {
+  const dashboard = document.createElement("section");
+  dashboard.id = DASHBOARD_ID;
+  dashboard.setAttribute("aria-label", "FreeFeed home");
+  dashboard.innerHTML = `
+    <header class="freefeed-header">
+      <div class="freefeed-brand" aria-label="Instagram, FreeFeed">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg>
+        <strong>IG</strong>
+        <span class="freefeed-divider" aria-hidden="true"></span>
+        <span>free feed</span>
+      </div>
+      <button class="freefeed-menu" type="button" data-freefeed-action="settings" aria-label="Instagram settings" title="Instagram settings">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"></path></svg>
+      </button>
+    </header>
+
+    <main class="freefeed-content">
+      <div class="freefeed-actions freefeed-actions-primary">
+        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-8-7 18-3-7-8-3Z"></path><path d="m11 14 4-4"></path></svg>', "Messages", "messages")}
+        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m15.5 15.5 5 5"></path></svg>', "Search", "search")}
+        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.8 8.7c0 5.7-8.8 11.1-8.8 11.1S3.2 14.4 3.2 8.7A4.7 4.7 0 0 1 12 6.3a4.7 4.7 0 0 1 8.8 2.4Z"></path><circle cx="18.5" cy="5" r="2.2" class="freefeed-icon-fill"></circle></svg>', "Notifications", "notifications")}
+        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"></path></svg>', "Create", "create")}
+      </div>
+
+      <div class="freefeed-actions freefeed-actions-secondary">
+        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m10 8 6 4-6 4Z"></path></svg>', "Stories", "stories")}
+        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="4"></rect><path d="M8 16v-4m4 4V8m4 8v-6"></path></svg>', "Professional dashboard", "professionalDashboard")}
+        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20c.8-4.2 3.3-6 7.5-6s6.7 1.8 7.5 6"></path></svg>', "Profile", "profile")}
+      </div>
+    </main>
+
+    <button class="freefeed-switch" type="button" data-freefeed-action="unrestricted">Switch to normal Instagram</button>
+  `;
+
+  dashboard.addEventListener("click", handleDashboardAction);
+  document.body.append(dashboard);
+
+  const returnButton = document.createElement("button");
+  returnButton.id = RETURN_ID;
+  returnButton.type = "button";
+  returnButton.textContent = "Return to FreeFeed";
+  returnButton.addEventListener("click", () => location.reload());
+  document.body.append(returnButton);
+
+  return dashboard;
+}
+
+function openInstagramRoute(link, fallbackPath) {
+  if (link) {
+    link.click();
+    return;
+  }
+
+  location.assign(fallbackPath);
+}
+
+function openNativeWorkflow(control) {
+  if (!control) {
+    return;
+  }
+
+  nativeWorkflowActive = true;
+  applyVisibilityRules();
+  control.click();
+}
+
+function handleDashboardAction(event) {
+  const button = event.target.closest("[data-freefeed-action]");
+
+  if (!button) {
+    return;
+  }
+
+  const sideNavigation = findSideNavigation();
+
+  switch (button.dataset.freefeedAction) {
+    case "messages":
+      openInstagramRoute(sideNavigation.items.messages, "/direct/inbox/");
+      break;
+    case "search":
+      openNativeWorkflow(
+        findInteractiveElementByLabel("Search", sideNavigation.panel)
+      );
+      break;
+    case "notifications":
+      openNativeWorkflow(sideNavigation.items.notifications);
+      break;
+    case "create":
+      openNativeWorkflow(sideNavigation.items.create);
+      break;
+    case "stories": {
+      const storyButton = document.querySelector(
+        'main [role="button"][aria-label^="Story by "]'
+      );
+      openNativeWorkflow(storyButton);
+      break;
+    }
+    case "professionalDashboard":
+      openNativeWorkflow(sideNavigation.items.professionalDashboard);
+      break;
+    case "profile":
+      openInstagramRoute(sideNavigation.items.profile, "/");
+      break;
+    case "settings":
+      openNativeWorkflow(sideNavigation.items.settings);
+      break;
+    case "unrestricted":
+      unrestrictedMode = true;
+      nativeWorkflowActive = false;
+      applyVisibilityRules();
+      break;
+  }
+}
+
 function setVisibility(elements, isVisible) {
   for (const element of elements) {
     if (element) {
@@ -197,8 +326,23 @@ function setVisibility(elements, isVisible) {
 
 function applyVisibilityRules() {
   const sideNavigation = findSideNavigation();
-  const shouldHideFeed =
-    location.pathname === "/" && !elementVisibility.feed;
+  const isHomePage = location.pathname === "/";
+  const dashboardActive =
+    isHomePage && !nativeWorkflowActive && !unrestrictedMode;
+  const shouldHideFeed = isHomePage && !unrestrictedMode;
+  const dashboard =
+    document.getElementById(DASHBOARD_ID) ?? createDashboard();
+  const returnButton = document.getElementById(RETURN_ID);
+
+  if (!isHomePage) {
+    nativeWorkflowActive = false;
+  }
+
+  dashboard.classList.toggle(DASHBOARD_ACTIVE_CLASS, dashboardActive);
+  returnButton.classList.toggle(
+    DASHBOARD_ACTIVE_CLASS,
+    isHomePage && nativeWorkflowActive && !unrestrictedMode
+  );
 
   // Feed visibility is a page-level CSS state. New infinite-scroll articles
   // match the rule immediately, before the MutationObserver runs. Restrict it
@@ -211,7 +355,7 @@ function applyVisibilityRules() {
 
   setVisibility(
     [sideNavigation.panel],
-    elementVisibility.navigationPanel
+    unrestrictedMode || elementVisibility.navigationPanel
   );
 
   for (const [elementName, settingKey] of Object.entries(
@@ -219,18 +363,21 @@ function applyVisibilityRules() {
   )) {
     setVisibility(
       [sideNavigation.items[elementName]],
-      elementVisibility[settingKey]
+      unrestrictedMode || elementVisibility[settingKey]
     );
   }
 
   setVisibility(
     findStories(),
-    elementVisibility.stories
+    unrestrictedMode || elementVisibility.stories
   );
-  setVisibility([findSuggestedUsers()], elementVisibility.suggestedUsers);
+  setVisibility(
+    [findSuggestedUsers()],
+    unrestrictedMode || elementVisibility.suggestedUsers
+  );
   setVisibility(
     findMessagesOverlay(),
-    elementVisibility.messagesOverlay
+    unrestrictedMode || elementVisibility.messagesOverlay
   );
 }
 
