@@ -1,97 +1,69 @@
-/*
- * FreeFeed visibility experiment
- *
- * true  = show the element normally
- * false = hide the element
- *
- * Defaults come from settings.js. Saved values are loaded from Chrome storage
- * and can be changed live from the extension popup.
- */
-const elementVisibility = { ...DEFAULT_VISIBILITY };
+const settings = { ...DEFAULT_SETTINGS };
 const HIDDEN_CLASS = "freefeed-hidden";
 const FEED_HIDDEN_CLASS = "freefeed-hide-feed";
 const LOADING_CLASS = "freefeed-loading";
 const DASHBOARD_ID = "freefeed-dashboard";
-const DASHBOARD_ACTIVE_CLASS = "freefeed-dashboard-active";
-const RETURN_ID = "freefeed-return";
-let nativeWorkflowActive = false;
-let unrestrictedMode = false;
-const SCROLL_KEYS = new Set([
-  "ArrowDown",
-  "ArrowUp",
-  "End",
-  "Home",
-  "PageDown",
-  "PageUp",
-  " "
-]);
+const ACTIVE_CLASS = "freefeed-active";
+const NATIVE_DIALOG_CLASS = "freefeed-native-dialog-open";
 
-// content.js runs at document_start, before Instagram can paint its interface.
-// Keep the page invisible until saved settings have been applied once.
-document.documentElement.classList.add(LOADING_CLASS);
-
-const NAVIGATION_SETTING_KEYS = {
-  instagramLogo: "navigationInstagramLogo",
-  home: "navigationHome",
-  reels: "navigationReels",
-  messages: "navigationMessages",
-  search: "navigationSearch",
-  notifications: "navigationNotifications",
-  create: "navigationCreate",
-  professionalDashboard: "navigationProfessionalDashboard",
-  profile: "navigationProfile",
-  settings: "navigationSettings",
-  alsoFromMeta: "navigationAlsoFromMeta"
+const NAV_SETTINGS = {
+  reels: "allowReels",
+  messages: "allowMessages",
+  search: "allowSearch",
+  notifications: "allowNotifications",
+  create: "allowCreate",
+  professionalDashboard: "allowProfessionalDashboard"
 };
 
-function findInteractiveElementByLabel(label, root = document) {
-  const labelledElement = Array.from(
-    root.querySelectorAll("[aria-label]")
-  ).find((element) => element.getAttribute("aria-label") === label);
+const ACTIONS = [
+  { name: "messages", label: "Messages", setting: "allowMessages", nav: "messages", row: "primary", fallback: "/direct/inbox/" },
+  { name: "search", label: "Search", setting: "allowSearch", nav: "search", row: "primary" },
+  { name: "notifications", label: "Notifications", setting: "allowNotifications", nav: "notifications", row: "primary" },
+  { name: "create", label: "Create", setting: "allowCreate", nav: "create", row: "primary" },
+  { name: "stories", label: "Stories", setting: "allowStories", row: "secondary" },
+  { name: "reels", label: "Reels", setting: "allowReels", nav: "reels", row: "secondary", fallback: "/reels/" },
+  { name: "professionalDashboard", label: "Dashboard", setting: "allowProfessionalDashboard", nav: "professionalDashboard", row: "secondary", optional: true },
+  { name: "profile", label: "Profile", nav: "profile", row: "secondary" }
+];
 
-  return labelledElement?.closest('a, button, [role="button"]') ?? null;
+let unrestrictedMode = false;
+let dashboardSignature = "";
+let updateScheduled = false;
+
+document.documentElement.classList.add(LOADING_CLASS);
+
+function findControl(label, root = document) {
+  return Array.from(root.querySelectorAll("[aria-label]"))
+    .filter((element) => !element.closest(`#${DASHBOARD_ID}`))
+    .find((element) => element.getAttribute("aria-label") === label)
+    ?.closest('a, button, [role="button"]') ?? null;
 }
 
-function findCommonAncestor(elements) {
-  const existingElements = elements.filter(Boolean);
-  let commonAncestor = existingElements[0] ?? null;
+function commonAncestor(elements) {
+  const existing = elements.filter(Boolean);
+  let ancestor = existing[0] ?? null;
 
-  while (
-    commonAncestor &&
-    existingElements.some((element) => !commonAncestor.contains(element))
-  ) {
-    commonAncestor = commonAncestor.parentElement;
+  while (ancestor && existing.some((element) => !ancestor.contains(element))) {
+    ancestor = ancestor.parentElement;
   }
 
-  return commonAncestor;
+  return ancestor;
 }
 
 function findSideNavigation() {
-  // These routes are stable product URLs and identify the central group of
-  // sidebar controls without depending on Instagram's generated class names.
-  const coreItems = {
-    reels: document.querySelector('a[href="/reels/"]'),
+  const core = {
+    reels: document.querySelector('a[href="/reels/"]:not([data-freefeed-nav-action])'),
     messages: document.querySelector('a[href="/direct/inbox/"]'),
-    search: document.querySelector('a[href="/explore/"]')
+    search: document.querySelector('a[href="/explore/"]:not([data-freefeed-nav-action])')
   };
+  let panel = Object.values(core).filter(Boolean).length >= 2
+    ? commonAncestor(Object.values(core))
+    : null;
 
-  const existingCoreItems = Object.values(coreItems).filter(Boolean);
-  let panel =
-    existingCoreItems.length >= 2
-      ? findCommonAncestor(existingCoreItems)
-      : null;
-
-  // The first ancestor containing both ends of the sidebar is the complete
-  // panel. If that structure cannot be confirmed, return null rather than
-  // risk hiding a broad page container.
   while (panel && panel !== document.body) {
-    const containsLogo = findInteractiveElementByLabel("Instagram", panel);
-    const containsSettings = findInteractiveElementByLabel("Settings", panel);
-
-    if (containsLogo && containsSettings) {
+    if (findControl("Instagram", panel) && findControl("Settings", panel)) {
       break;
     }
-
     panel = panel.parentElement;
   }
 
@@ -100,105 +72,66 @@ function findSideNavigation() {
   }
 
   const items = {
-    instagramLogo: findInteractiveElementByLabel("Instagram", panel),
-    home: findInteractiveElementByLabel("Home", panel),
-    ...coreItems,
-    notifications: findInteractiveElementByLabel("Notifications", panel),
-    create: findInteractiveElementByLabel("New post", panel),
-    professionalDashboard: findInteractiveElementByLabel(
-      "Professional dashboard",
-      panel
-    ),
-    settings: findInteractiveElementByLabel("Settings", panel),
-    alsoFromMeta: findInteractiveElementByLabel("Also from Meta", panel)
+    instagramLogo: findControl("Instagram", panel),
+    home: findControl("Home", panel),
+    ...core,
+    notifications: findControl("Notifications", panel),
+    create: findControl("New post", panel),
+    professionalDashboard: findControl("Professional dashboard", panel),
+    settings: findControl("Settings", panel),
+    alsoFromMeta: findControl("Also from Meta", panel)
   };
+  const knownRoutes = new Set(["/", "/reels/", "/direct/inbox/", "/explore/"]);
 
-  // A profile link has a one-segment account URL and a real image. Excluding
-  // the known product routes avoids hard-coding a username or English alt text.
-  const knownNavigationHrefs = new Set([
-    "/",
-    "/reels/",
-    "/direct/inbox/",
-    "/explore/"
-  ]);
-  items.profile =
-    Array.from(panel.querySelectorAll("a[href]")).find((link) => {
+  items.profile = Array.from(panel.querySelectorAll("a[href]"))
+    .find((link) => {
       const href = link.getAttribute("href");
-
-      return (
-        /^\/[^/]+\/$/.test(href) &&
-        !knownNavigationHrefs.has(href) &&
-        link.querySelector("img")
-      );
+      return /^\/[^/]+\/$/.test(href) && !knownRoutes.has(href) && link.querySelector("img");
     }) ?? null;
 
   return { panel, items };
 }
 
-function findStories() {
-  const pagelets = document.querySelectorAll('[data-pagelet="story_tray"]');
-
-  if (pagelets.length > 0) {
-    return pagelets;
-  }
-
-  // Semantic fallback for a minor pagelet rename: story controls remain a
-  // list of buttons whose accessible labels begin with "Story by".
-  const storyButton = document.querySelector(
-    'main [role="button"][aria-label^="Story by "]'
-  );
-  const storyList = storyButton?.closest("ul");
-
-  return storyList ? [storyList] : [];
+function firstStoryButton() {
+  return document.querySelector('main [role="button"][aria-label^="Story by "]');
 }
 
-function findSuggestedUsers() {
-  const seeAllLink = document.querySelector('a[href="/explore/people/"]');
-  let candidate = seeAllLink;
-
-  // Climb from the stable "See all" URL until the container also includes a
-  // Follow button. On the inspected homepage, this is the suggestions block.
-  while (candidate && candidate !== document.body) {
-    const containsFollowButton = Array.from(
-      candidate.querySelectorAll('button, [role="button"]')
-    ).some((button) => button.textContent.trim() === "Follow");
-
-    if (containsFollowButton) {
-      return candidate;
-    }
-
-    candidate = candidate.parentElement;
-  }
-
-  return null;
+function storiesIcon(size = 32) {
+  const wrapper = document.createElement("span");
+  wrapper.innerHTML = `<svg aria-hidden="true" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none"><circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="2"></circle><path d="m10 8.5 5.5 3.5-5.5 3.5v-7Z" fill="currentColor"></path></svg>`;
+  return wrapper.firstElementChild;
 }
 
-function findMessagesOverlay() {
-  const pagelets = document.querySelectorAll(
-    '[data-pagelet="IGDChatTabsRootContentOffMsys"]'
-  );
-
-  if (pagelets.length > 0) {
-    return pagelets;
+function cloneVisual(action, sideNavigation, size = 32) {
+  if (action.name === "stories") {
+    return storiesIcon(size);
   }
 
-  // Semantic fallback for a minor pagelet rename. Exclude the sidebar link,
-  // then hide the Messages tray's button-shaped root.
-  const overlayLabel = Array.from(
-    document.querySelectorAll('[aria-label="Messages"]')
-  ).find((element) => !element.closest('a[href="/direct/inbox/"]'));
-  const overlayButton = overlayLabel?.closest('[role="button"]');
+  const source = sideNavigation.items[action.nav];
+  const visual = source?.querySelector(action.name === "profile" ? "img" : "svg");
 
-  return overlayButton ? [overlayButton] : [];
+  if (!visual) {
+    return null;
+  }
+
+  const clone = visual.cloneNode(true);
+  clone.removeAttribute("class");
+  clone.removeAttribute("aria-label");
+  clone.setAttribute("aria-hidden", "true");
+  clone.setAttribute("width", size);
+  clone.setAttribute("height", size);
+  clone.querySelector("title")?.remove();
+
+  if (clone.tagName === "IMG") {
+    clone.alt = "";
+  }
+
+  return clone;
 }
 
-function dashboardAction(icon, label, action) {
-  return `
-    <button class="freefeed-action" type="button" data-freefeed-action="${action}" aria-label="${label}" title="${label}">
-      ${icon}
-      <span>${label}</span>
-    </button>
-  `;
+function actionAvailable(action, sideNavigation) {
+  if (action.name === "stories") return Boolean(firstStoryButton());
+  return Boolean(sideNavigation.items[action.nav] || action.fallback);
 }
 
 function createDashboard() {
@@ -206,307 +139,257 @@ function createDashboard() {
   dashboard.id = DASHBOARD_ID;
   dashboard.setAttribute("aria-label", "FreeFeed home");
   dashboard.innerHTML = `
-    <header class="freefeed-header">
-      <div class="freefeed-brand" aria-label="Instagram, FreeFeed">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg>
-        <strong>IG</strong>
-        <span class="freefeed-divider" aria-hidden="true"></span>
-        <span>free feed</span>
+    <!--
+      THESIS: A native Instagram task launcher replaces the feed without replacing Instagram.
+      OWN-WORLD: Instagram's live theme, typography, spacing, and exact native action glyphs.
+      STORY: Choose an allowed task, complete it natively, and return without entering the feed.
+      FIRST VIEWPORT: A centered Instagram/FreeFeed mark above two quiet rows of task controls.
+      FORM: Instagram-native Operate surface; canon pinned by the user.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
+    <div class="freefeed-content">
+      <div class="freefeed-brand" aria-label="Instagram FreeFeed">
+        <span class="freefeed-brand-icon" aria-hidden="true"></span>
+        <span class="freefeed-brand-divider" aria-hidden="true"></span>
+        <span class="freefeed-brand-name">FreeFeed</span>
       </div>
-      <button class="freefeed-menu" type="button" data-freefeed-action="settings" aria-label="Instagram settings" title="Instagram settings">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"></path></svg>
-      </button>
-    </header>
-
-    <main class="freefeed-content">
-      <div class="freefeed-actions freefeed-actions-primary">
-        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-8-7 18-3-7-8-3Z"></path><path d="m11 14 4-4"></path></svg>', "Messages", "messages")}
-        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m15.5 15.5 5 5"></path></svg>', "Search", "search")}
-        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.8 8.7c0 5.7-8.8 11.1-8.8 11.1S3.2 14.4 3.2 8.7A4.7 4.7 0 0 1 12 6.3a4.7 4.7 0 0 1 8.8 2.4Z"></path><circle cx="18.5" cy="5" r="2.2" class="freefeed-icon-fill"></circle></svg>', "Notifications", "notifications")}
-        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"></path></svg>', "Create", "create")}
-      </div>
-
-      <div class="freefeed-actions freefeed-actions-secondary">
-        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m10 8 6 4-6 4Z"></path></svg>', "Stories", "stories")}
-        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="4"></rect><path d="M8 16v-4m4 4V8m4 8v-6"></path></svg>', "Professional dashboard", "professionalDashboard")}
-        ${dashboardAction('<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20c.8-4.2 3.3-6 7.5-6s6.7 1.8 7.5 6"></path></svg>', "Profile", "profile")}
-      </div>
-    </main>
-
-    <button class="freefeed-switch" type="button" data-freefeed-action="unrestricted">Switch to normal Instagram</button>
+      <div class="freefeed-actions" data-freefeed-row="primary"></div>
+      <div class="freefeed-actions freefeed-actions-secondary" data-freefeed-row="secondary"></div>
+    </div>
+    <button class="freefeed-switch" type="button">Switch to normal Instagram</button>
   `;
-
-  dashboard.addEventListener("click", handleDashboardAction);
+  dashboard.addEventListener("click", handleDashboardClick);
+  dashboard.querySelector(".freefeed-switch").addEventListener("click", () => {
+    unrestrictedMode = true;
+    applyRules();
+  });
   document.body.append(dashboard);
-
-  const returnButton = document.createElement("button");
-  returnButton.id = RETURN_ID;
-  returnButton.type = "button";
-  returnButton.textContent = "Return to FreeFeed";
-  returnButton.addEventListener("click", () => location.reload());
-  document.body.append(returnButton);
-
   return dashboard;
 }
 
-function openInstagramRoute(link, fallbackPath) {
-  if (link) {
-    link.click();
+function brandIcon(sideNavigation) {
+  const svg = sideNavigation.items.instagramLogo?.querySelector("svg")?.cloneNode(true);
+
+  if (!svg) {
+    return null;
+  }
+
+  svg.removeAttribute("class");
+  svg.removeAttribute("aria-label");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("width", "42");
+  svg.setAttribute("height", "42");
+  svg.setAttribute("fill", "url(#freefeed-instagram-gradient)");
+  svg.querySelector("title")?.remove();
+  svg.insertAdjacentHTML("afterbegin", `<defs><radialGradient id="freefeed-instagram-gradient" cx="30%" cy="105%" r="120%"><stop offset="0" stop-color="#ffd600"></stop><stop offset=".32" stop-color="#ff7a00"></stop><stop offset=".58" stop-color="#ff0169"></stop><stop offset=".78" stop-color="#d300c5"></stop><stop offset="1" stop-color="#7638fa"></stop></radialGradient></defs>`);
+  return svg;
+}
+
+function renderDashboard(dashboard, sideNavigation) {
+  const activeActions = ACTIONS.filter((action) => {
+    if (action.setting && !settings[action.setting]) {
+      return false;
+    }
+    return !action.optional || sideNavigation.items[action.nav];
+  });
+  const signature = JSON.stringify({
+    actions: activeActions.map((action) => [
+      action.name,
+      Boolean(cloneVisual(action, sideNavigation)),
+      actionAvailable(action, sideNavigation)
+    ]),
+    logo: Boolean(sideNavigation.items.instagramLogo),
+    profile: sideNavigation.items.profile?.querySelector("img")?.src
+  });
+
+  if (signature === dashboardSignature) {
+    return;
+  }
+  dashboardSignature = signature;
+
+  const brand = dashboard.querySelector(".freefeed-brand-icon");
+  brand.replaceChildren(...[brandIcon(sideNavigation)].filter(Boolean));
+
+  for (const row of ["primary", "secondary"]) {
+    const container = dashboard.querySelector(`[data-freefeed-row="${row}"]`);
+    const buttons = activeActions.filter((action) => action.row === row).map((action) => {
+      const button = document.createElement("button");
+      const visual = cloneVisual(action, sideNavigation);
+      button.className = "freefeed-action";
+      button.type = "button";
+      button.dataset.freefeedAction = action.name;
+      button.setAttribute("aria-label", action.label);
+      button.title = action.label;
+      button.disabled = !visual || !actionAvailable(action, sideNavigation);
+      if (visual) button.append(visual);
+      button.append(Object.assign(document.createElement("span"), { textContent: action.label }));
+      return button;
+    });
+    container.replaceChildren(...buttons);
+  }
+}
+
+function waitForControl(label, timeout = 2000) {
+  const existing = findControl(label);
+  if (existing) return Promise.resolve(existing);
+
+  return new Promise((resolve) => {
+    const observer = new MutationObserver(() => {
+      const control = findControl(label);
+      if (!control) return;
+      clearTimeout(timer);
+      observer.disconnect();
+      resolve(control);
+    });
+    const timer = setTimeout(() => {
+      observer.disconnect();
+      resolve(null);
+    }, timeout);
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+async function openAction(action, sideNavigation) {
+  if (action.name === "stories") {
+    firstStoryButton()?.click();
     return;
   }
 
-  location.assign(fallbackPath);
-}
-
-function openNativeWorkflow(control) {
-  if (!control) {
-    return;
+  const control = sideNavigation.items[action.nav];
+  if (control) {
+    control.click();
+    if (action.name === "create") {
+      (await waitForControl("Post"))?.click();
+    }
+  } else if (action.fallback) {
+    location.assign(action.fallback);
   }
-
-  nativeWorkflowActive = true;
-  applyVisibilityRules();
-  control.click();
 }
 
-function handleDashboardAction(event) {
+function handleDashboardClick(event) {
   const button = event.target.closest("[data-freefeed-action]");
-
-  if (!button) {
-    return;
-  }
-
-  const sideNavigation = findSideNavigation();
-
-  switch (button.dataset.freefeedAction) {
-    case "messages":
-      openInstagramRoute(sideNavigation.items.messages, "/direct/inbox/");
-      break;
-    case "search":
-      openNativeWorkflow(
-        findInteractiveElementByLabel("Search", sideNavigation.panel)
-      );
-      break;
-    case "notifications":
-      openNativeWorkflow(sideNavigation.items.notifications);
-      break;
-    case "create":
-      openNativeWorkflow(sideNavigation.items.create);
-      break;
-    case "stories": {
-      const storyButton = document.querySelector(
-        'main [role="button"][aria-label^="Story by "]'
-      );
-      openNativeWorkflow(storyButton);
-      break;
-    }
-    case "professionalDashboard":
-      openNativeWorkflow(sideNavigation.items.professionalDashboard);
-      break;
-    case "profile":
-      openInstagramRoute(sideNavigation.items.profile, "/");
-      break;
-    case "settings":
-      openNativeWorkflow(sideNavigation.items.settings);
-      break;
-    case "unrestricted":
-      unrestrictedMode = true;
-      nativeWorkflowActive = false;
-      applyVisibilityRules();
-      break;
-  }
+  const action = ACTIONS.find((candidate) => candidate.name === button?.dataset.freefeedAction);
+  if (action) openAction(action, findSideNavigation());
 }
 
-function setVisibility(elements, isVisible) {
-  for (const element of elements) {
-    if (element) {
-      element.classList.toggle(HIDDEN_CLASS, !isVisible);
+function setVisible(element, visible) {
+  element?.classList.toggle(HIDDEN_CLASS, !visible);
+}
+
+function findNotificationPanel() {
+  const heading = Array.from(document.querySelectorAll('[role="heading"]'))
+    .find((element) => element.textContent.trim() === "Notifications");
+
+  for (let element = heading; element && element !== document.body; element = element.parentElement) {
+    const rect = element.getBoundingClientRect();
+    if (rect.left === 0 && rect.width >= 320 && rect.width <= 600 && rect.height >= innerHeight * 0.8) {
+      return element;
     }
   }
+  return null;
 }
 
-function applyVisibilityRules() {
+function applyRules() {
   const sideNavigation = findSideNavigation();
-  const isHomePage = location.pathname === "/";
-  const dashboardActive =
-    isHomePage && !nativeWorkflowActive && !unrestrictedMode;
-  const shouldHideFeed = isHomePage && !unrestrictedMode;
-  const dashboard =
-    document.getElementById(DASHBOARD_ID) ?? createDashboard();
-  const returnButton = document.getElementById(RETURN_ID);
+  const dashboard = document.getElementById(DASHBOARD_ID) ?? createDashboard();
+  const isHome = location.pathname === "/";
+  const dashboardActive = isHome && !unrestrictedMode;
+  const navigationReady = Boolean(sideNavigation.panel
+    && sideNavigation.items.instagramLogo
+    && sideNavigation.items.notifications
+    && sideNavigation.items.create);
 
-  if (!isHomePage) {
-    nativeWorkflowActive = false;
+  if (navigationReady) {
+    setVisible(sideNavigation.panel, unrestrictedMode || !isHome);
+    for (const [item, setting] of Object.entries(NAV_SETTINGS)) {
+      setVisible(sideNavigation.items[item], unrestrictedMode || settings[setting]);
+    }
+    renderDashboard(dashboard, sideNavigation);
   }
 
-  dashboard.classList.toggle(DASHBOARD_ACTIVE_CLASS, dashboardActive);
-  returnButton.classList.toggle(
-    DASHBOARD_ACTIVE_CLASS,
-    isHomePage && nativeWorkflowActive && !unrestrictedMode
-  );
-
-  // Feed visibility is a page-level CSS state. New infinite-scroll articles
-  // match the rule immediately, before the MutationObserver runs. Restrict it
-  // to the homepage so opening an individual post still works normally.
-  document.documentElement.classList.toggle(
-    FEED_HIDDEN_CLASS,
-    shouldHideFeed
-  );
-  document.body.classList.toggle(FEED_HIDDEN_CLASS, shouldHideFeed);
-
-  setVisibility(
-    [sideNavigation.panel],
-    unrestrictedMode || elementVisibility.navigationPanel
-  );
-
-  for (const [elementName, settingKey] of Object.entries(
-    NAVIGATION_SETTING_KEYS
-  )) {
-    setVisibility(
-      [sideNavigation.items[elementName]],
-      unrestrictedMode || elementVisibility[settingKey]
-    );
-  }
-
-  setVisibility(
-    findStories(),
-    unrestrictedMode || elementVisibility.stories
-  );
-  setVisibility(
-    [findSuggestedUsers()],
-    unrestrictedMode || elementVisibility.suggestedUsers
-  );
-  setVisibility(
-    findMessagesOverlay(),
-    unrestrictedMode || elementVisibility.messagesOverlay
-  );
+  const sidebarWidth = dashboardActive
+    ? 0
+    : sideNavigation.panel?.getBoundingClientRect().width ?? 0;
+  const notificationWidth = findNotificationPanel()?.getBoundingClientRect().right ?? 0;
+  const nativeDialogOpen = Array.from(document.querySelectorAll('[role="dialog"]'))
+    .some((dialog) => !dialog.closest(`#${DASHBOARD_ID}`));
+  dashboard.style.setProperty("--freefeed-sidebar-width", `${Math.round(sidebarWidth)}px`);
+  dashboard.style.setProperty("--freefeed-native-panel-width", `${Math.round(notificationWidth)}px`);
+  dashboard.classList.toggle(ACTIVE_CLASS, dashboardActive);
+  dashboard.classList.toggle(NATIVE_DIALOG_CLASS, nativeDialogOpen);
+  document.documentElement.classList.toggle(FEED_HIDDEN_CLASS, dashboardActive);
+  document.body.classList.toggle(FEED_HIDDEN_CLASS, dashboardActive);
 }
 
-let updateScheduled = false;
-
-function scheduleVisibilityUpdate() {
-  if (updateScheduled) {
-    return;
-  }
-
+function scheduleUpdate() {
+  if (updateScheduled) return;
   updateScheduled = true;
   queueMicrotask(() => {
     updateScheduled = false;
-    applyVisibilityRules();
+    applyRules();
   });
 }
 
-function waitForBody() {
-  if (document.body) {
-    return Promise.resolve();
+function canScroll(element) {
+  for (let current = element instanceof Element ? element : null; current && current !== document.body; current = current.parentElement) {
+    const style = getComputedStyle(current);
+    if (/(auto|scroll)/.test(style.overflowY) && current.scrollHeight > current.clientHeight) {
+      return true;
+    }
   }
-
-  return new Promise((resolve) => {
-    const bodyObserver = new MutationObserver(() => {
-      if (!document.body) {
-        return;
-      }
-
-      bodyObserver.disconnect();
-      resolve();
-    });
-
-    bodyObserver.observe(document.documentElement, { childList: true });
-  });
-}
-
-function isFeedScrollBlocked() {
-  return document.documentElement.classList.contains(FEED_HIDDEN_CLASS);
+  return false;
 }
 
 function blockFeedScroll(event) {
-  if (!isFeedScrollBlocked()) {
-    return;
-  }
-
-  event.preventDefault();
-  event.stopImmediatePropagation();
-}
-
-function blockFeedScrollKey(event) {
-  if (!isFeedScrollBlocked() || !SCROLL_KEYS.has(event.key)) {
-    return;
-  }
-
-  const target = event.target;
-  const isEditing =
-    target instanceof Element &&
-    target.closest('input, textarea, select, [contenteditable="true"]');
-
-  if (!isEditing) {
-    blockFeedScroll(event);
+  if (document.documentElement.classList.contains(FEED_HIDDEN_CLASS) && !canScroll(event.target)) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
   }
 }
 
-// Register before Instagram's application scripts. CSS prevents movement;
-// these listeners also stop scroll input from triggering feed pagination.
-window.addEventListener("wheel", blockFeedScroll, {
-  capture: true,
-  passive: false
-});
-window.addEventListener("touchmove", blockFeedScroll, {
-  capture: true,
-  passive: false
-});
-window.addEventListener("keydown", blockFeedScrollKey, { capture: true });
+window.addEventListener("wheel", blockFeedScroll, { capture: true, passive: false });
+window.addEventListener("touchmove", blockFeedScroll, { capture: true, passive: false });
 
-// Instagram is a React single-page application. Parts of the page are added
-// and replaced after the initial load, so reapply the rules after DOM changes.
-const pageObserver = new MutationObserver(scheduleVisibilityUpdate);
+const pageObserver = new MutationObserver(scheduleUpdate);
+
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local") {
-    return;
+  if (areaName !== "local") return;
+  let changed = false;
+
+  for (const [key, change] of Object.entries(changes)) {
+    if (!(key in DEFAULT_SETTINGS)) continue;
+    settings[key] = typeof change.newValue === "boolean" ? change.newValue : DEFAULT_SETTINGS[key];
+    changed = true;
   }
-
-  let visibilityChanged = false;
-
-  for (const [settingKey, change] of Object.entries(changes)) {
-    if (!(settingKey in DEFAULT_VISIBILITY)) {
-      continue;
-    }
-
-    elementVisibility[settingKey] =
-      typeof change.newValue === "boolean"
-        ? change.newValue
-        : DEFAULT_VISIBILITY[settingKey];
-    visibilityChanged = true;
-  }
-
-  if (visibilityChanged) {
-    applyVisibilityRules();
+  if (changed) {
+    dashboardSignature = "";
+    applyRules();
   }
 });
 
 async function startFreeFeed() {
-  const storedSettingsPromise = chrome.storage.local
-    .get(DEFAULT_VISIBILITY)
+  const storedSettings = chrome.storage.local.get(DEFAULT_SETTINGS)
     .catch((error) => {
-      console.error("FreeFeed could not load its saved settings.", error);
-      return DEFAULT_VISIBILITY;
+      console.error("FreeFeed could not load its settings.", error);
+      return DEFAULT_SETTINGS;
     });
 
   try {
-    await waitForBody();
-    const storedSettings = await storedSettingsPromise;
-
-    for (const settingKey of Object.keys(DEFAULT_VISIBILITY)) {
-      const storedValue = storedSettings[settingKey];
-      elementVisibility[settingKey] =
-        typeof storedValue === "boolean"
-          ? storedValue
-          : DEFAULT_VISIBILITY[settingKey];
+    if (!document.body) {
+      await new Promise((resolve) => {
+        const observer = new MutationObserver(() => {
+          if (document.body) {
+            observer.disconnect();
+            resolve();
+          }
+        });
+        observer.observe(document.documentElement, { childList: true });
+      });
     }
 
-    pageObserver.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-
-    applyVisibilityRules();
+    Object.assign(settings, await storedSettings);
+    pageObserver.observe(document.body, { childList: true, subtree: true });
+    applyRules();
   } finally {
     document.documentElement.classList.remove(LOADING_CLASS);
   }

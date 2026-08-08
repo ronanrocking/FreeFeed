@@ -1,7 +1,7 @@
 const settingCheckboxes = document.querySelectorAll("[data-setting]");
 
 async function loadSettings() {
-  const storedSettings = await chrome.storage.local.get(DEFAULT_VISIBILITY);
+  const storedSettings = await chrome.storage.local.get(DEFAULT_SETTINGS);
 
   for (const checkbox of settingCheckboxes) {
     checkbox.checked = storedSettings[checkbox.dataset.setting];

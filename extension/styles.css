@@ -15,216 +15,178 @@
 html.freefeed-hide-feed,
 html.freefeed-hide-feed body.freefeed-hide-feed {
   overflow: hidden !important;
-  overflow-y: hidden !important;
   overscroll-behavior: none;
 }
 
 #freefeed-dashboard {
+  --freefeed-background: rgb(var(--ig-primary-background, 255, 255, 255));
+  --freefeed-foreground: rgb(var(--ig-primary-text, 38, 38, 38));
+  --freefeed-hover: rgb(var(--ig-secondary-background, 239, 239, 239));
   position: fixed;
-  inset: 0;
-  z-index: 2147483646;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: calc(var(--freefeed-sidebar-width, 0px) + var(--freefeed-native-panel-width, 0px));
   display: none;
   min-width: 320px;
   overflow: auto;
-  color: #111;
-  background: #fff;
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-background);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-#freefeed-dashboard.freefeed-dashboard-active {
-  display: grid;
-  grid-template-rows: auto 1fr;
-}
-
-.freefeed-header {
+#freefeed-dashboard.freefeed-active {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 82px;
-  padding: 0 clamp(24px, 6vw, 84px);
-  border-bottom: 1px solid #dbdbdb;
+  justify-content: center;
 }
 
-.freefeed-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: clamp(22px, 2.3vw, 32px);
-  letter-spacing: -1px;
-}
-
-.freefeed-brand > svg {
-  width: 32px;
-  height: 32px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-}
-
-.freefeed-brand > span:last-child {
-  font-family: Georgia, serif;
-  font-size: 0.9em;
-  font-style: italic;
-  letter-spacing: -1.5px;
-}
-
-.freefeed-divider {
-  width: 1px;
-  height: 32px;
-  margin: 0 3px;
-  background: #8e8e8e;
-}
-
-.freefeed-menu,
-.freefeed-action {
-  border: 0;
-  color: inherit;
-  background: transparent;
-  cursor: pointer;
-}
-
-.freefeed-menu {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  padding: 11px;
-  place-items: center;
-  border-radius: 12px;
-}
-
-.freefeed-menu svg,
-.freefeed-action svg {
-  width: 100%;
-  height: 100%;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.9;
-}
-
-.freefeed-icon-fill {
-  fill: currentColor;
-  stroke: none;
+#freefeed-dashboard.freefeed-native-dialog-open {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .freefeed-content {
   display: flex;
   align-items: center;
-  justify-content: center;
   flex-direction: column;
-  gap: clamp(42px, 8vh, 86px);
-  padding: 48px 24px 96px;
+  width: min(760px, calc(100% - 48px));
+  padding: 48px 24px 88px;
+}
+
+.freefeed-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 64px;
+}
+
+.freefeed-brand-icon,
+.freefeed-brand-icon svg {
+  display: block;
+  width: 42px;
+  height: 42px;
+}
+
+.freefeed-brand-divider {
+  width: 1px;
+  height: 34px;
+  background: rgb(var(--ig-separator, 219, 219, 219));
+}
+
+.freefeed-brand-name {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
 .freefeed-actions {
-  display: grid;
+  display: flex;
+  align-items: flex-start;
   justify-content: center;
-  gap: clamp(38px, 8vw, 110px);
-}
-
-.freefeed-actions-primary {
-  grid-template-columns: repeat(4, minmax(64px, 88px));
+  flex-wrap: wrap;
+  gap: 28px 44px;
+  width: 100%;
 }
 
 .freefeed-actions-secondary {
-  grid-template-columns: repeat(3, minmax(58px, 76px));
+  margin-top: 38px;
 }
 
 .freefeed-action {
   display: flex;
   align-items: center;
+  flex: 0 0 96px;
   flex-direction: column;
   gap: 10px;
-  padding: 8px;
-  border-radius: 14px;
+  min-height: 78px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  background: transparent;
   font: inherit;
+  cursor: pointer;
 }
 
 .freefeed-action svg {
-  width: 48px;
-  height: 48px;
+  color: inherit;
 }
 
-.freefeed-actions-secondary .freefeed-action svg {
-  width: 42px;
-  height: 42px;
+.freefeed-action img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .freefeed-action span {
-  font-size: 13px;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 400;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.freefeed-action:hover,
-.freefeed-menu:hover {
-  background: #f2f2f2;
-  transform: scale(1.04);
+.freefeed-action:hover:not(:disabled) {
+  background: var(--freefeed-hover);
+}
+
+.freefeed-action:active:not(:disabled) {
+  opacity: 0.6;
+}
+
+.freefeed-action:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .freefeed-action:focus-visible,
-.freefeed-menu:focus-visible,
-.freefeed-switch:focus-visible,
-#freefeed-return:focus-visible {
-  outline: 2px solid #111;
-  outline-offset: 3px;
+.freefeed-switch:focus-visible {
+  outline: 2px solid rgb(var(--ig-link, 0, 149, 246));
+  outline-offset: 2px;
 }
 
 .freefeed-switch {
   position: absolute;
-  right: 22px;
-  bottom: 18px;
-  padding: 6px;
+  right: 20px;
+  bottom: 16px;
+  padding: 8px;
   border: 0;
-  color: #737373;
+  color: rgb(var(--ig-secondary-text, 115, 115, 115));
   background: transparent;
-  font: 12px/1.2 Arial, Helvetica, sans-serif;
-  text-decoration: underline;
+  font: 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   cursor: pointer;
 }
 
-#freefeed-return {
-  position: fixed;
-  top: 16px;
-  right: 18px;
-  z-index: 2147483647;
-  display: none;
-  padding: 9px 13px;
-  border: 1px solid #dbdbdb;
-  border-radius: 9px;
-  color: #111;
-  background: #fff;
-  font: 13px/1.2 Arial, Helvetica, sans-serif;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 10%);
-  cursor: pointer;
+.freefeed-switch:hover {
+  color: var(--freefeed-foreground);
 }
 
-#freefeed-return.freefeed-dashboard-active {
-  display: block;
-}
+@media (max-width: 700px) {
+  #freefeed-dashboard {
+    left: 0;
+  }
 
-@media (max-width: 640px) {
-  .freefeed-header {
-    min-height: 68px;
-    padding: 0 18px;
+  .freefeed-content {
+    padding-inline: 12px;
+  }
+
+  .freefeed-brand {
+    margin-bottom: 42px;
   }
 
   .freefeed-actions {
-    gap: 26px;
-  }
-
-  .freefeed-actions-primary {
-    grid-template-columns: repeat(2, 80px);
-  }
-
-  .freefeed-actions-secondary {
-    grid-template-columns: repeat(3, 70px);
+    gap: 20px 12px;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .freefeed-action,
-  .freefeed-menu {
-    transition: background-color 120ms ease, transform 120ms ease;
+  .freefeed-switch {
+    transition: background-color 150ms ease-out, color 150ms ease-out, opacity 150ms ease-out;
   }
 }
