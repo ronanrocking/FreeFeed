@@ -6,16 +6,24 @@
   display: none !important;
 }
 
-.freefeed-hide-feed main div:has(> article),
-.freefeed-hide-feed main article,
-.freefeed-hide-feed main [role="progressbar"] {
+.freefeed-page-locked main div:has(> article),
+.freefeed-page-locked main article,
+.freefeed-page-locked main [role="progressbar"],
+.freefeed-feed-hidden main div:has(> article),
+.freefeed-feed-hidden main article,
+.freefeed-feed-hidden main [role="progressbar"] {
   display: none !important;
 }
 
-html.freefeed-hide-feed,
-html.freefeed-hide-feed body.freefeed-hide-feed {
+html.freefeed-page-locked,
+html.freefeed-page-locked body.freefeed-page-locked {
   overflow: hidden !important;
   overscroll-behavior: none;
+}
+
+.freefeed-route-restricted video,
+.freefeed-route-restricted audio {
+  visibility: hidden !important;
 }
 
 #freefeed-dashboard {
@@ -45,6 +53,10 @@ html.freefeed-hide-feed body.freefeed-hide-feed {
 #freefeed-dashboard.freefeed-native-dialog-open {
   visibility: hidden;
   pointer-events: none;
+}
+
+#freefeed-dashboard [hidden] {
+  display: none !important;
 }
 
 .freefeed-content {
@@ -144,16 +156,63 @@ html.freefeed-hide-feed body.freefeed-hide-feed {
   cursor: default;
 }
 
+.freefeed-action-no-icon {
+  justify-content: center;
+}
+
 .freefeed-action:focus-visible,
+.freefeed-primary:focus-visible,
 .freefeed-switch:focus-visible {
   outline: 2px solid rgb(var(--ig-link, 0, 149, 246));
   outline-offset: 2px;
+}
+
+.freefeed-status {
+  max-width: 48ch;
+  margin: 34px 0 0;
+  color: rgb(var(--ig-secondary-text, 115, 115, 115));
+  font-size: 13px;
+  text-align: center;
+}
+
+.freefeed-blocked {
+  width: min(520px, calc(100% - 48px));
+  text-align: center;
+}
+
+.freefeed-blocked h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.025em;
+}
+
+.freefeed-blocked p {
+  margin: 10px auto 26px;
+  max-width: 42ch;
+  color: rgb(var(--ig-secondary-text, 115, 115, 115));
+  font-size: 14px;
+}
+
+.freefeed-primary {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: rgb(var(--ig-primary-button, 0, 149, 246));
+  font: 600 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.freefeed-primary:hover {
+  background: rgb(var(--ig-primary-button-hover, 24, 119, 242));
 }
 
 .freefeed-switch {
   position: absolute;
   right: 20px;
   bottom: 16px;
+  min-height: 36px;
   padding: 8px;
   border: 0;
   color: rgb(var(--ig-secondary-text, 115, 115, 115));
@@ -186,7 +245,14 @@ html.freefeed-hide-feed body.freefeed-hide-feed {
 
 @media (prefers-reduced-motion: no-preference) {
   .freefeed-action,
+  .freefeed-primary,
   .freefeed-switch {
     transition: background-color 150ms ease-out, color 150ms ease-out, opacity 150ms ease-out;
+  }
+}
+
+@media (forced-colors: active) {
+  .freefeed-primary {
+    border: 1px solid ButtonText;
   }
 }

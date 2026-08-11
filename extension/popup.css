@@ -21,6 +21,16 @@ p {
   font-size: 12px;
 }
 
+.status {
+  min-height: 17px;
+  margin: 10px 0 0;
+  color: #737373;
+}
+
+.status.error {
+  color: #c72c41;
+}
+
 fieldset {
   margin: 0 0 12px;
   padding: 8px 10px 10px;
@@ -56,6 +66,10 @@ input {
 
   p {
     color: #a8a8a8;
+  }
+
+  .status.error {
+    color: #ff7b8c;
   }
 
   fieldset {

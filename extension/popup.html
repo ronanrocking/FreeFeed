@@ -8,11 +8,12 @@
   <body>
     <main>
       <h1>FreeFeed</h1>
-      <p>Choose what appears on the FreeFeed home and Instagram navigation.</p>
+      <p>Choose what appears on Instagram and the FreeFeed home.</p>
 
       <fieldset>
         <legend>Allowed activities</legend>
 
+        <label><input type="checkbox" data-setting="allowFeed"> Feed</label>
         <label><input type="checkbox" data-setting="allowMessages"> Messages</label>
         <label><input type="checkbox" data-setting="allowSearch"> Search</label>
         <label><input type="checkbox" data-setting="allowNotifications"> Notifications</label>
@@ -21,6 +22,8 @@
         <label><input type="checkbox" data-setting="allowReels"> Reels</label>
         <label><input type="checkbox" data-setting="allowProfessionalDashboard"> Professional dashboard</label>
       </fieldset>
+
+      <p class="status" role="status" aria-live="polite"></p>
     </main>
 
     <script src="settings.js"></script>
