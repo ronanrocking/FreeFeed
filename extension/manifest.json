@@ -1,18 +1,38 @@
 {
   "manifest_version": 3,
   "name": "FreeFeed",
-  "version": "0.2.0",
-  "description": "Tests configurable visibility rules for the Instagram web interface.",
+  "version": "0.7.1",
+  "description": "Use Instagram intentionally by choosing which activities stay available.",
   "permissions": ["storage"],
-  "action": {
-    "default_popup": "popup.html"
+  "background": {
+    "service_worker": "background.js"
   },
+  "icons": {
+    "16": "assets/icons/freefeed-16.png",
+    "32": "assets/icons/freefeed-32.png",
+    "48": "assets/icons/freefeed-48.png",
+    "128": "assets/icons/freefeed-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/icons/freefeed-16.png",
+      "32": "assets/icons/freefeed-32.png"
+    }
+  },
+  "options_page": "options.html",
   "content_scripts": [
     {
       "matches": ["https://www.instagram.com/*"],
       "css": ["styles.css"],
       "js": ["settings.js", "content.js"],
       "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/brand/freefeed-mark.svg"],
+      "matches": ["https://www.instagram.com/*"]
     }
   ]
 }

@@ -1,0 +1,449 @@
+:root {
+  color-scheme: light dark;
+  --freefeed-background: #fbfaf9;
+  --freefeed-surface: #ffffff;
+  --freefeed-foreground: #101218;
+  --freefeed-muted: #626775;
+  --freefeed-line: #e5e2e0;
+  --freefeed-track: #d9d7dc;
+  --freefeed-blue: #0095f6;
+  --freefeed-focus: #0095f6;
+  --freefeed-error: #b4233f;
+  --freefeed-dialog-backdrop: rgba(16, 18, 24, 0.62);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  min-width: 280px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-background);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page-header {
+  border-bottom: 1px solid var(--freefeed-line);
+  background: var(--freefeed-surface);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  width: min(720px, calc(100% - 40px));
+  min-height: 68px;
+  margin: 0 auto;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--freefeed-foreground);
+  text-decoration: none;
+}
+
+.header-inner img {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin-right: 9px;
+}
+
+main {
+  width: min(720px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 56px 0 72px;
+}
+
+.settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: min(720px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 20px 0 28px;
+  border-top: 1px solid var(--freefeed-line);
+  color: var(--freefeed-muted);
+  font-size: 12px;
+}
+
+.settings-footer p { margin: 0; }
+
+.settings-footer nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.settings-footer a,
+.settings-footer button {
+  padding: 4px 0;
+  border: 0;
+  color: var(--freefeed-muted);
+  background: transparent;
+  font: 500 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.settings-footer a:hover,
+.settings-footer button:hover { color: var(--freefeed-foreground); }
+
+.header-inner:focus-visible,
+.settings-footer a:focus-visible,
+.settings-footer button:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--freefeed-focus);
+  outline-offset: 3px;
+}
+
+.settings-intro {
+  max-width: 620px;
+  margin-bottom: 28px;
+}
+
+h1, h2, p { margin-top: 0; }
+
+h1 {
+  margin-bottom: 8px;
+  font-size: clamp(30px, 4vw, 38px);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.settings-intro p,
+.section-heading p {
+  margin-bottom: 0;
+  color: var(--freefeed-muted);
+}
+
+.settings-intro p {
+  max-width: 62ch;
+  font-size: 15px;
+}
+
+.settings-surface {
+  overflow: hidden;
+  border: 1px solid var(--freefeed-line);
+  border-radius: 14px;
+  background: var(--freefeed-surface);
+}
+
+.section-heading {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--freefeed-line);
+}
+
+.section-heading h2 {
+  margin-bottom: 4px;
+  font-size: 16px;
+  letter-spacing: -0.015em;
+}
+
+.section-heading p { font-size: 13px; }
+
+.activity-options {
+  min-width: 0;
+  margin: 0;
+  padding: 0 24px;
+  border: 0;
+}
+
+.activity-options label {
+  display: flex;
+  align-items: center;
+  min-height: 66px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--freefeed-line);
+  cursor: pointer;
+}
+
+.activity-options label:last-of-type { border-bottom: 0; }
+
+.activity-options label > span {
+  display: grid;
+  gap: 2px;
+  padding-right: 20px;
+}
+
+.activity-options strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.activity-options small {
+  color: var(--freefeed-muted);
+  font-size: 12px;
+}
+
+.activity-options input[type="checkbox"] {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  flex: 0 0 38px;
+  margin: 0 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  appearance: none;
+  background: var(--freefeed-track);
+  cursor: pointer;
+}
+
+.activity-options input[type="checkbox"]::before {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(16, 18, 24, 0.26);
+  content: "";
+}
+
+.activity-options input[type="checkbox"]:checked { background: var(--freefeed-blue); }
+.activity-options input[type="checkbox"]:checked::before { transform: translateX(16px); }
+
+.activity-options input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--freefeed-focus);
+  outline-offset: 3px;
+}
+
+.activity-options input[type="checkbox"]:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.settings-status {
+  min-height: 42px;
+  margin: 0;
+  padding: 11px 24px;
+  border-top: 1px solid var(--freefeed-line);
+  color: var(--freefeed-muted);
+  font-size: 12px;
+}
+
+.settings-status.error { color: var(--freefeed-error); }
+
+.settings-status:empty { display: none; }
+
+.enable-dialog {
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  overflow: auto;
+  border: 1px solid var(--freefeed-line);
+  border-radius: 14px;
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-surface);
+}
+
+.enable-dialog::backdrop {
+  background: var(--freefeed-dialog-backdrop);
+}
+
+.dialog-content {
+  padding: 24px;
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.dialog-heading img {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+}
+
+.dialog-heading h2 {
+  margin-bottom: 5px;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.dialog-heading p {
+  max-width: 48ch;
+  margin-bottom: 0;
+  color: var(--freefeed-muted);
+  font-size: 13px;
+}
+
+.deliberate-step {
+  display: grid;
+  gap: 3px;
+  margin: 22px 0;
+  padding: 13px 0;
+  border-top: 1px solid var(--freefeed-line);
+  border-bottom: 1px solid var(--freefeed-line);
+}
+
+.deliberate-step strong {
+  font-size: 13px;
+}
+
+.deliberate-step span {
+  color: var(--freefeed-muted);
+  font-size: 12px;
+}
+
+.acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.acknowledgement input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  margin: 1px 0 0;
+  accent-color: var(--freefeed-blue);
+}
+
+.confirmation-field {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirmation-field code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-background);
+  font-size: 12px;
+}
+
+.confirmation-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--freefeed-line);
+  border-radius: 10px;
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-background);
+  font: inherit;
+}
+
+.confirmation-field input:focus-visible,
+.acknowledgement input:focus-visible,
+.dialog-actions button:focus-visible {
+  outline: 2px solid var(--freefeed-focus);
+  outline-offset: 3px;
+}
+
+.dialog-status {
+  min-height: 18px;
+  margin: 8px 0 0;
+  color: var(--freefeed-error);
+  font-size: 12px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.dialog-actions button {
+  min-height: 42px;
+  padding: 0 15px;
+  border-radius: 10px;
+  font: 700 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.secondary-action {
+  border: 1px solid var(--freefeed-line);
+  color: var(--freefeed-foreground);
+  background: transparent;
+}
+
+.primary-action {
+  border: 0;
+  color: #ffffff;
+  background: var(--freefeed-blue);
+}
+
+.primary-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 520px) {
+  .header-inner, main, .settings-footer { width: min(100% - 28px, 720px); }
+  main { padding: 36px 0 48px; }
+  .section-heading, .activity-options, .settings-status { padding-right: 18px; padding-left: 18px; }
+
+  .dialog-content { padding: 20px; }
+
+  .dialog-actions {
+    flex-direction: column;
+  }
+
+  .dialog-actions button {
+    width: 100%;
+  }
+
+  .primary-action { order: -1; }
+
+  .settings-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --freefeed-background: #111318;
+    --freefeed-surface: #181b21;
+    --freefeed-foreground: #f7f7f8;
+    --freefeed-muted: #b1b4bd;
+    --freefeed-line: #2b2f38;
+    --freefeed-track: #464b56;
+    --freefeed-blue: #0095f6;
+    --freefeed-focus: #0095f6;
+    --freefeed-error: #ff8599;
+    --freefeed-dialog-backdrop: rgba(0, 0, 0, 0.72);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .activity-options input[type="checkbox"],
+  .activity-options input[type="checkbox"]::before,
+  .dialog-actions button {
+    transition: background-color 150ms ease-out, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .settings-footer a,
+  .settings-footer button { transition: color 150ms ease-out; }
+}
+
+@media (forced-colors: active) {
+  .activity-options input[type="checkbox"] { border-color: ButtonText; }
+  .activity-options input[type="checkbox"]:checked { background: Highlight; }
+  .enable-dialog { border-color: ButtonText; }
+  .primary-action { border: 1px solid ButtonText; color: ButtonText; background: ButtonFace; }
+}

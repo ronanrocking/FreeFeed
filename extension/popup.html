@@ -2,28 +2,56 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>FreeFeed</title>
     <link rel="stylesheet" href="popup.css">
   </head>
   <body>
     <main>
-      <h1>FreeFeed</h1>
-      <p>Choose what appears on Instagram and the FreeFeed home.</p>
+      <section class="popup-view" data-popup-view="main">
+        <h1><img src="assets/brand/freefeed-mark.svg" alt=""><span>FreeFeed</span></h1>
+        <p>Choose what appears on Instagram and the FreeFeed home.</p>
 
-      <fieldset>
-        <legend>Allowed activities</legend>
+        <section class="unlock-section" aria-labelledby="unlock-heading">
+          <h2 id="unlock-heading">Temporary access</h2>
+          <p class="unlock-description">Choose a short window for normal Instagram.</p>
 
-        <label><input type="checkbox" data-setting="allowFeed"> Feed</label>
-        <label><input type="checkbox" data-setting="allowMessages"> Messages</label>
-        <label><input type="checkbox" data-setting="allowSearch"> Search</label>
-        <label><input type="checkbox" data-setting="allowNotifications"> Notifications</label>
-        <label><input type="checkbox" data-setting="allowCreate"> Create</label>
-        <label><input type="checkbox" data-setting="allowStories"> Stories</label>
-        <label><input type="checkbox" data-setting="allowReels"> Reels</label>
-        <label><input type="checkbox" data-setting="allowProfessionalDashboard"> Professional dashboard</label>
-      </fieldset>
+          <fieldset class="duration-options">
+            <legend class="sr-only">Unlock duration</legend>
+            <label><input type="radio" name="unlock-duration" value="2"><span>2 min</span></label>
+            <label><input type="radio" name="unlock-duration" value="5" checked><span>5 min</span></label>
+            <label><input type="radio" name="unlock-duration" value="15"><span>15 min</span></label>
+          </fieldset>
 
-      <p class="status" role="status" aria-live="polite"></p>
+          <button class="unlock-button" type="button" data-unlock>Unlock Instagram</button>
+          <div class="unlock-status" data-state="active" role="status" aria-live="polite" aria-atomic="true">
+            <span class="unlock-status-dot" aria-hidden="true"></span>
+            <span data-unlock-status>Active · restrictions enforced</span>
+          </div>
+        </section>
+
+        <nav class="popup-links" aria-label="FreeFeed links">
+          <a href="options.html" data-open-settings>Settings</a>
+          <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+          <a href="#about" data-open-about>About</a>
+        </nav>
+
+        <p class="save-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="popup-view about-view" data-popup-view="about" hidden>
+        <button class="popup-back" type="button" data-about-back>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Back</span>
+        </button>
+        <h1 class="about-heading" tabindex="-1">About</h1>
+        <p class="about-copy">I designed this software to soften the overwhelming control that IG and other apps have in our lives. This replaces the chaotic, tempting UI of IG with a simple, focused and intentional UI.</p>
+        <a class="about-github" href="https://github.com/ronanrocking/FreeFeed" target="_blank" rel="noopener noreferrer">View FreeFeed on GitHub</a>
+        <blockquote class="about-quote">
+          <p>“Time is that which God uses to separate the idle from the industrious. For time is a mountain and upon seeing its steep incline, the idle will lie down among the lilies of the field and hope that someone passes by with a pitcher of lemonade. What the worthy endeavor requires is planning, effort, attentiveness, and the willingness to clean up.”</p>
+          <cite>— Amor Towles</cite>
+        </blockquote>
+      </section>
     </main>
 
     <script src="settings.js"></script>

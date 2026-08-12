@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Settings · FreeFeed</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <!--
+      THESIS: Permanent choices live in one calm, deliberate workspace instead of beside the temporary escape hatch.
+      OWN-WORLD: FreeFeed neutrals, restrained dividers, the broken-loop mark, blue switches, and one uninterrupted settings surface.
+      STORY: Understand what these choices control, disable freely, and deliberately confirm any expansion of access.
+      FIRST VIEWPORT: A compact brand header leads to a focused settings column with one explanatory introduction and the complete activity list.
+      FORM: Focused settings ledger; seed key narrow-extension-user-specified, exempt from concept rolling as a precisely specified local extension surface.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
+    <header class="page-header">
+      <a class="header-inner" href="welcome.html" aria-label="Open FreeFeed welcome page">
+        <img src="assets/brand/freefeed-mark.svg" alt="">
+        <span>FreeFeed</span>
+      </a>
+    </header>
+
+    <main>
+      <div class="settings-intro">
+        <h1>Settings</h1>
+        <p>Choose the Instagram activities that remain available while FreeFeed is active.</p>
+      </div>
+
+      <section class="settings-surface" aria-labelledby="activities-heading">
+        <div class="section-heading">
+          <h2 id="activities-heading">Allowed activities</h2>
+          <p>Turning an activity off is immediate. Turning one on requires deliberate confirmation.</p>
+        </div>
+
+        <fieldset class="activity-options">
+          <legend class="sr-only">Allowed activities</legend>
+
+          <label><span><strong>Feed</strong><small>Instagram’s home feed</small></span><input type="checkbox" data-setting="allowFeed"></label>
+          <label><span><strong>Messages</strong><small>Direct messages and your inbox</small></span><input type="checkbox" data-setting="allowMessages"></label>
+          <label><span><strong>Search</strong><small>Search and Explore</small></span><input type="checkbox" data-setting="allowSearch"></label>
+          <label><span><strong>Notifications</strong><small>Activity and account updates</small></span><input type="checkbox" data-setting="allowNotifications"></label>
+          <label><span><strong>Create</strong><small>Post and creation tools</small></span><input type="checkbox" data-setting="allowCreate"></label>
+          <label><span><strong>Stories</strong><small>Stories from people you follow</small></span><input type="checkbox" data-setting="allowStories"></label>
+          <label><span><strong>Reels</strong><small>Reels pages and the Reels feed</small></span><input type="checkbox" data-setting="allowReels"></label>
+          <label><span><strong>Professional dashboard</strong><small>Professional tools and insights</small></span><input type="checkbox" data-setting="allowProfessionalDashboard"></label>
+        </fieldset>
+
+        <p class="settings-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </section>
+    </main>
+
+    <footer class="settings-footer">
+      <p>FreeFeed keeps your choices local to this browser.</p>
+      <nav aria-label="FreeFeed information">
+        <a href="privacy.html">Privacy Policy</a>
+        <button type="button" data-open-about>About</button>
+        <a href="https://github.com/ronanrocking/FreeFeed" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </nav>
+    </footer>
+
+    <dialog class="enable-dialog" data-enable-dialog aria-labelledby="enable-dialog-title" aria-describedby="enable-dialog-description">
+      <div class="dialog-content">
+        <div class="dialog-heading">
+          <img src="assets/brand/freefeed-mark.svg" alt="">
+          <div>
+            <h2 id="enable-dialog-title">Enable <span data-enable-feature></span>?</h2>
+            <p id="enable-dialog-description">This permanently makes the activity available whenever FreeFeed is locked.</p>
+          </div>
+        </div>
+
+        <div class="deliberate-step" aria-live="polite">
+          <strong data-enable-wait>Wait 10 seconds before continuing</strong>
+          <span>Use Temporary access from the popup if you only need Instagram briefly.</span>
+        </div>
+
+        <label class="acknowledgement">
+          <input type="checkbox" data-enable-acknowledgement>
+          <span>I understand this weakens my permanent FreeFeed settings.</span>
+        </label>
+
+        <label class="confirmation-field">
+          <span>Type <code data-enable-phrase></code> to confirm</span>
+          <input type="text" data-enable-confirmation autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </label>
+
+        <p class="dialog-status" data-enable-status role="status" aria-live="polite"></p>
+
+        <div class="dialog-actions">
+          <button class="secondary-action" type="button" data-enable-cancel>Cancel</button>
+          <button class="primary-action" type="button" data-enable-submit disabled>Enable activity</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="settings.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

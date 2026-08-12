@@ -1,78 +1,386 @@
+:root {
+  color-scheme: light dark;
+  --freefeed-background: #fbfaf9;
+  --freefeed-surface: #ffffff;
+  --freefeed-foreground: #101218;
+  --freefeed-muted: #626775;
+  --freefeed-line: #e5e2e0;
+  --freefeed-hover: #f4f1f3;
+  --freefeed-track: #d9d7dc;
+  --freefeed-blue: #0095f6;
+  --freefeed-focus: #0095f6;
+  --freefeed-error: #b4233f;
+  --freefeed-success: #35785b;
+  --freefeed-warning: #9a5b13;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
+  width: 340px;
+  min-width: 340px;
   margin: 0;
-  min-width: 290px;
-  color: #262626;
-  background: #fff;
-  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-background);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 main {
-  padding: 16px;
+  padding: 20px 20px 16px;
+}
+
+.popup-view[hidden] {
+  display: none;
 }
 
 h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
-  font-size: 20px;
+  color: var(--freefeed-foreground);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+h1 img {
+  display: block;
+  width: 32px;
+  height: 32px;
 }
 
 p {
-  margin: 6px 0 16px;
-  color: #737373;
+  margin: 8px 0 18px;
+  color: var(--freefeed-muted);
   font-size: 12px;
 }
 
-.status {
-  min-height: 17px;
-  margin: 10px 0 0;
-  color: #737373;
+.unlock-section {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid var(--freefeed-line);
+  border-radius: 14px;
+  background: var(--freefeed-surface);
 }
 
-.status.error {
-  color: #c72c41;
+.unlock-section h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
-fieldset {
-  margin: 0 0 12px;
-  padding: 8px 10px 10px;
-  border: 1px solid #dbdbdb;
-  border-radius: 8px;
+.unlock-description {
+  margin: 4px 0 12px;
+  line-height: 1.45;
 }
 
-fieldset:last-child {
-  margin-bottom: 0;
+.duration-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--freefeed-line);
+  border-radius: 12px;
+  background: var(--freefeed-hover);
 }
 
-legend {
-  padding: 0 4px;
-  font-weight: 600;
-}
-
-label {
+.duration-options label {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 7px 0;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--freefeed-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-input {
-  margin: 0 8px 0 0;
-  accent-color: #0095f6;
+.duration-options label span {
+  line-height: 1;
+}
+
+.duration-options label:hover {
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-background);
+}
+
+.duration-options label:has(input:checked) {
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-background);
+  box-shadow: 0 1px 3px rgba(16, 18, 24, 0.14);
+}
+
+.duration-options label:has(input:disabled) {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.duration-options input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.duration-options label:has(input:focus-visible) {
+  outline: 2px solid var(--freefeed-focus);
+  outline-offset: 2px;
+}
+
+.unlock-button {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  background: var(--freefeed-blue);
+  font: 700 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.unlock-button:hover:not(:disabled) {
+  background: #1877f2;
+}
+
+.unlock-button:active:not(:disabled) {
+  background: #0064e0;
+}
+
+.unlock-button:focus-visible {
+  outline: 2px solid var(--freefeed-focus);
+  outline-offset: 3px;
+}
+
+.unlock-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.unlock-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 18px;
+  margin-top: 10px;
+  color: var(--freefeed-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.unlock-status-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--freefeed-muted);
+}
+
+.unlock-status[data-state="active"] {
+  color: var(--freefeed-foreground);
+}
+
+.unlock-status[data-state="active"] .unlock-status-dot {
+  background: var(--freefeed-success);
+}
+
+.unlock-status[data-state="paused"] {
+  color: var(--freefeed-warning);
+}
+
+.unlock-status[data-state="paused"] .unlock-status-dot {
+  background: var(--freefeed-warning);
+}
+
+.unlock-status[data-state="inactive"] {
+  color: var(--freefeed-error);
+}
+
+.unlock-status[data-state="inactive"] .unlock-status-dot {
+  background: var(--freefeed-error);
+}
+
+.popup-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 7px 0 2px;
+}
+
+.popup-links a {
+  padding: 6px 0;
+  color: var(--freefeed-muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.popup-links a:hover {
+  color: var(--freefeed-foreground);
+}
+
+.popup-links a:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--freefeed-focus);
+  outline-offset: 3px;
+}
+
+.save-status {
+  min-height: 17px;
+  margin: 8px 0 0;
+  color: var(--freefeed-muted);
+  font-size: 12px;
+}
+
+.save-status.error {
+  color: var(--freefeed-error);
+}
+
+.about-view {
+  min-height: 350px;
+}
+
+.popup-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  margin: -4px 0 18px -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--freefeed-muted);
+  background: transparent;
+  font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.popup-back:hover {
+  color: var(--freefeed-foreground);
+  background: var(--freefeed-hover);
+}
+
+.popup-back:focus-visible,
+.about-heading:focus-visible {
+  outline: 2px solid var(--freefeed-focus);
+  outline-offset: 2px;
+}
+
+.about-heading {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.about-copy {
+  margin: 0;
+  color: var(--freefeed-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.about-github {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--freefeed-muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-underline-offset: 3px;
+}
+
+.about-github:hover {
+  color: var(--freefeed-foreground);
+}
+
+.about-github:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--freefeed-focus);
+  outline-offset: 3px;
+}
+
+.about-quote {
+  margin: 24px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--freefeed-line);
+  color: var(--freefeed-muted);
+}
+
+.about-quote p {
+  margin: 0;
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.65;
+}
+
+.about-quote cite {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (prefers-color-scheme: dark) {
-  body {
-    color: #f5f5f5;
-    background: #0c1014;
+  :root {
+    --freefeed-background: #111318;
+    --freefeed-surface: #181b21;
+    --freefeed-foreground: #f7f7f8;
+    --freefeed-muted: #b1b4bd;
+    --freefeed-line: #2b2f38;
+    --freefeed-hover: #1c2027;
+    --freefeed-track: #464b56;
+    --freefeed-blue: #0095f6;
+    --freefeed-focus: #0095f6;
+    --freefeed-error: #ff8599;
+    --freefeed-success: #8fd1ae;
+    --freefeed-warning: #ffc06a;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .duration-options label,
+  .unlock-button,
+  .popup-links a,
+  .popup-back {
+    transition: color 150ms ease-out, background-color 150ms ease-out, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@media (forced-colors: active) {
+  .duration-options label:has(input:checked),
+  .unlock-button {
+    border: 1px solid ButtonText;
   }
 
-  p {
-    color: #a8a8a8;
-  }
-
-  .status.error {
-    color: #ff7b8c;
-  }
-
-  fieldset {
-    border-color: #262626;
+  .unlock-button {
+    color: ButtonText;
+    background: ButtonFace;
   }
 }

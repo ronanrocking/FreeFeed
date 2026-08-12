@@ -28,11 +28,13 @@ const ACTIONS = [
   { name: "profile", label: "Profile", nav: "profile", row: "secondary" }
 ];
 
-let unrestrictedMode = false;
+let instagramUnlockUntil = 0;
+let unlockTimer = 0;
 let dashboardSignature = "";
 let currentMode = "native";
-let navigationCache = null;
-let updateFrame = 0;
+let permittedNativeAction = null;
+let nativeActionOpeningUntil = 0;
+let updateScheduled = false;
 let inertElements = new Map();
 let hiddenSearchNodes = new Set();
 
@@ -99,13 +101,6 @@ function findSideNavigation() {
   };
 }
 
-function getSideNavigation() {
-  const elements = Object.values(navigationCache?.items ?? {}).filter(Boolean);
-  if (navigationCache?.panel?.isConnected && elements.every((element) => element.isConnected)) return navigationCache;
-  navigationCache = findSideNavigation();
-  return navigationCache;
-}
-
 function firstStoryButton() {
   return document.querySelector('main a[href^="/stories/"]')?.closest('button, [role="button"]')
     ?? document.querySelector('[data-pagelet="story_tray"] [role="button"]')
@@ -147,11 +142,6 @@ function actionAvailable(action, sideNavigation) {
   return Boolean(sideNavigation.items[action.nav] || action.fallback);
 }
 
-function visualAvailable(action, sideNavigation) {
-  if (action.name === "stories") return true;
-  return Boolean(sideNavigation.items[action.nav]?.querySelector(action.name === "profile" ? "img" : "svg"));
-}
-
 function createDashboard() {
   const dashboard = document.createElement("section");
   dashboard.id = DASHBOARD_ID;
@@ -159,39 +149,27 @@ function createDashboard() {
   dashboard.innerHTML = `
     <div class="freefeed-content" data-freefeed-view="home">
       <div class="freefeed-brand" aria-label="Instagram FreeFeed">
-        <span class="freefeed-brand-icon" aria-hidden="true"></span>
+        <span class="freefeed-brand-icon" aria-hidden="true"><img src="${chrome.runtime.getURL("assets/brand/freefeed-mark.svg")}" alt=""></span>
         <span class="freefeed-brand-divider" aria-hidden="true"></span>
         <span class="freefeed-brand-name">FreeFeed</span>
       </div>
       <div class="freefeed-actions" data-freefeed-row="primary"></div>
       <div class="freefeed-actions freefeed-actions-secondary" data-freefeed-row="secondary"></div>
+      <blockquote class="freefeed-quote">
+        <p>“Time is that which God uses to separate the idle from the industrious.” <cite>— Amor Towles</cite></p>
+      </blockquote>
       <p class="freefeed-status" role="status" hidden></p>
     </div>
     <div class="freefeed-blocked" data-freefeed-view="blocked" hidden>
+      <img class="freefeed-blocked-mark" src="${chrome.runtime.getURL("assets/brand/freefeed-mark.svg")}" alt="">
       <h1 tabindex="-1"></h1>
       <p></p>
       <button class="freefeed-primary" type="button" data-freefeed-home>Back to FreeFeed</button>
     </div>
-    <button class="freefeed-switch" type="button" data-freefeed-switch>Switch to normal Instagram</button>
   `;
   dashboard.addEventListener("click", handleDashboardClick);
   document.body.append(dashboard);
   return dashboard;
-}
-
-function brandIcon(sideNavigation) {
-  const svg = sideNavigation.items.instagramLogo?.querySelector("svg")?.cloneNode(true);
-  if (!svg) return null;
-
-  svg.removeAttribute("class");
-  svg.removeAttribute("aria-label");
-  svg.setAttribute("aria-hidden", "true");
-  svg.setAttribute("width", "42");
-  svg.setAttribute("height", "42");
-  svg.setAttribute("fill", "url(#freefeed-instagram-gradient)");
-  svg.querySelector("title")?.remove();
-  svg.insertAdjacentHTML("afterbegin", `<defs><radialGradient id="freefeed-instagram-gradient" cx="30%" cy="105%" r="120%"><stop offset="0" stop-color="#ffd600"></stop><stop offset=".32" stop-color="#ff7a00"></stop><stop offset=".58" stop-color="#ff0169"></stop><stop offset=".78" stop-color="#d300c5"></stop><stop offset="1" stop-color="#7638fa"></stop></radialGradient></defs>`);
-  return svg;
 }
 
 function renderHome(dashboard, sideNavigation) {
@@ -200,17 +178,13 @@ function renderHome(dashboard, sideNavigation) {
     return !action.optional || sideNavigation.items[action.nav];
   });
   const signature = JSON.stringify({
-    actions: actions.map((action) => [action.name, actionAvailable(action, sideNavigation), visualAvailable(action, sideNavigation)]),
-    logo: Boolean(sideNavigation.items.instagramLogo),
+    actions: actions.map((action) => [action.name, Boolean(cloneVisual(action, sideNavigation)), actionAvailable(action, sideNavigation)]),
     profile: sideNavigation.items.profile?.querySelector("img")?.src,
     ready: Boolean(sideNavigation.panel),
     timedOut: !sideNavigation.panel && performance.now() >= 3000
   });
   if (signature === dashboardSignature) return;
   dashboardSignature = signature;
-
-  const brand = dashboard.querySelector(".freefeed-brand-icon");
-  brand.replaceChildren(...[brandIcon(sideNavigation)].filter(Boolean));
 
   for (const row of ["primary", "secondary"]) {
     const buttons = actions.filter((action) => action.row === row).map((action) => {
@@ -233,7 +207,7 @@ function renderHome(dashboard, sideNavigation) {
   const status = dashboard.querySelector(".freefeed-status");
   const stillLoading = !sideNavigation.panel && performance.now() < 3000;
   status.textContent = stillLoading ? "" : !sideNavigation.panel
-    ? "Instagram’s controls could not be found. Reload the page or switch to normal Instagram."
+    ? "Instagram’s controls could not be found. Reload the page and try again."
     : unavailable.length
       ? "Some Instagram actions are unavailable right now."
       : "";
@@ -275,6 +249,9 @@ async function openAction(action, sideNavigation) {
 
   const control = sideNavigation.items[action.nav];
   if (control) {
+    permittedNativeAction = action.name;
+    nativeActionOpeningUntil = performance.now() + 2500;
+    setTimeout(scheduleUpdate, 2500);
     control.click();
     if (action.name === "create") (await waitForControl("Post"))?.click();
   } else if (action.fallback) {
@@ -283,12 +260,6 @@ async function openAction(action, sideNavigation) {
 }
 
 function handleDashboardClick(event) {
-  if (event.target.closest("[data-freefeed-switch]")) {
-    unrestrictedMode = true;
-    dashboardSignature = "";
-    applyRules();
-    return;
-  }
   if (event.target.closest("[data-freefeed-home]")) {
     location.assign("/");
     return;
@@ -296,7 +267,7 @@ function handleDashboardClick(event) {
 
   const button = event.target.closest("[data-freefeed-action]");
   const action = ACTIONS.find((candidate) => candidate.name === button?.dataset.freefeedAction);
-  if (action) void openAction(action, getSideNavigation());
+  if (action) void openAction(action, findSideNavigation());
 }
 
 function setVisible(element, visible) {
@@ -369,6 +340,29 @@ function pauseRestrictedMedia(restriction) {
   }
 }
 
+function scheduleUnlockExpiry() {
+  clearTimeout(unlockTimer);
+  unlockTimer = 0;
+
+  const remaining = remainingUnlockMilliseconds(instagramUnlockUntil);
+  if (!remaining) return;
+
+  unlockTimer = setTimeout(() => {
+    instagramUnlockUntil = 0;
+    permittedNativeAction = null;
+    nativeActionOpeningUntil = 0;
+    void chrome.storage.local.remove(INSTAGRAM_UNLOCK_KEY).catch((error) => {
+      console.error("FreeFeed could not clear an expired unlock.", error);
+    });
+    if (routeRestriction(location.pathname, settings)) {
+      location.replace("/");
+      return;
+    }
+    dashboardSignature = "";
+    applyRules();
+  }, remaining);
+}
+
 function focusDashboard(dashboard, mode) {
   if (mode === currentMode) return;
   const activeInNativePage = document.activeElement && document.activeElement !== document.body && !dashboard.contains(document.activeElement);
@@ -380,20 +374,30 @@ function focusDashboard(dashboard, mode) {
 }
 
 function applyRules() {
-  const sideNavigation = getSideNavigation();
+  const sideNavigation = findSideNavigation();
   const dashboard = document.getElementById(DASHBOARD_ID) ?? createDashboard();
-  const restriction = unrestrictedMode ? null : routeRestriction(location.pathname, settings);
-  const mode = unrestrictedMode ? "native" : restriction ? "blocked" : location.pathname === "/" ? "home" : "native";
+  const instagramUnlocked = activeUnlockDeadline(instagramUnlockUntil) > 0;
+  const restriction = instagramUnlocked ? null : routeRestriction(location.pathname, settings);
+  const mode = instagramUnlocked ? "native" : restriction ? "blocked" : location.pathname === "/" ? "home" : "native";
   const dashboardActive = mode !== "native";
-  const focusedSearch = !unrestrictedMode && settings.allowSearch && /^\/explore(?:\/|$)/.test(location.pathname);
-  const nativeDialog = findNativeDialog();
-  const nativePanel = dashboardActive && !nativeDialog ? findNativePanel() : null;
+  const focusedSearch = !instagramUnlocked && settings.allowSearch && /^\/explore(?:\/|$)/.test(location.pathname);
+  const nativeActionPermitted = dashboardActive && Boolean(permittedNativeAction);
+  const nativeDialog = nativeActionPermitted ? findNativeDialog() : null;
+  const nativePanel = nativeActionPermitted && !nativeDialog ? findNativePanel() : null;
 
-  setVisible(sideNavigation.panel, unrestrictedMode || mode === "native");
-  for (const [item, setting] of Object.entries(NAV_SETTINGS)) {
-    setVisible(sideNavigation.items[item], settings[setting]);
+  if (!dashboardActive) {
+    permittedNativeAction = null;
+    nativeActionOpeningUntil = 0;
+  } else if (permittedNativeAction && !nativeDialog && !nativePanel && performance.now() >= nativeActionOpeningUntil) {
+    permittedNativeAction = null;
+    nativeActionOpeningUntil = 0;
   }
-  setVisible(storyTray(), settings.allowStories);
+
+  setVisible(sideNavigation.panel, instagramUnlocked || mode === "native");
+  for (const [item, setting] of Object.entries(NAV_SETTINGS)) {
+    setVisible(sideNavigation.items[item], instagramUnlocked || settings[setting]);
+  }
+  setVisible(storyTray(), instagramUnlocked || settings.allowStories);
 
   if (!nativeDialog && !nativePanel) renderHome(dashboard, sideNavigation);
   if (restriction) renderBlocked(dashboard, restriction);
@@ -430,9 +434,10 @@ function applyRules() {
 }
 
 function scheduleUpdate() {
-  if (updateFrame) return;
-  updateFrame = requestAnimationFrame(() => {
-    updateFrame = 0;
+  if (updateScheduled) return;
+  updateScheduled = true;
+  queueMicrotask(() => {
+    updateScheduled = false;
     applyRules();
   });
 }
@@ -474,32 +479,47 @@ window.addEventListener("wheel", blockPageScroll, { capture: true, passive: fals
 window.addEventListener("touchmove", blockPageScroll, { capture: true, passive: false });
 document.addEventListener("keydown", keepFocusInDashboard, true);
 
-const pageObserver = new MutationObserver((mutations) => {
-  if (navigationCache?.panel && mutations.some(({ target }) => navigationCache.panel.contains(target))) {
-    navigationCache = null;
-  }
-  scheduleUpdate();
-});
+const pageObserver = new MutationObserver(scheduleUpdate);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local") return;
   let changed = false;
+  let lockActivated = false;
+  const changedSettings = {};
 
   for (const [key, change] of Object.entries(changes)) {
+    if (key === INSTAGRAM_UNLOCK_KEY) {
+      instagramUnlockUntil = activeUnlockDeadline(change.newValue);
+      lockActivated = !instagramUnlockUntil;
+      permittedNativeAction = null;
+      nativeActionOpeningUntil = 0;
+      scheduleUnlockExpiry();
+      changed = true;
+      continue;
+    }
     if (!(key in DEFAULT_SETTINGS)) continue;
     settings[key] = typeof change.newValue === "boolean" ? change.newValue : DEFAULT_SETTINGS[key];
+    changedSettings[key] = settings[key];
     changed = true;
   }
-  if (changed) {
-    dashboardSignature = "";
-    applyRules();
+
+  if (!changed) return;
+  const exitRestriction = !instagramUnlockUntil && (lockActivated
+    ? routeRestriction(location.pathname, settings)
+    : newlyDisabledRoute(location.pathname, settings, changedSettings));
+  if (exitRestriction) {
+    location.replace("/");
+    return;
   }
+  dashboardSignature = "";
+  applyRules();
 });
 
 async function startFreeFeed() {
-  const storedSettings = chrome.storage.local.get(DEFAULT_SETTINGS).catch((error) => {
+  const storageDefaults = { ...DEFAULT_SETTINGS, [INSTAGRAM_UNLOCK_KEY]: 0 };
+  const storedSettings = chrome.storage.local.get(storageDefaults).catch((error) => {
     console.error("FreeFeed could not load its settings.", error);
-    return DEFAULT_SETTINGS;
+    return storageDefaults;
   });
 
   try {
@@ -514,7 +534,12 @@ async function startFreeFeed() {
       });
     }
 
-    Object.assign(settings, await storedSettings);
+    const stored = await storedSettings;
+    for (const [key, defaultValue] of Object.entries(DEFAULT_SETTINGS)) {
+      settings[key] = typeof stored[key] === "boolean" ? stored[key] : defaultValue;
+    }
+    instagramUnlockUntil = activeUnlockDeadline(stored[INSTAGRAM_UNLOCK_KEY]);
+    scheduleUnlockExpiry();
     pageObserver.observe(document.body, { childList: true, subtree: true });
     setTimeout(scheduleUpdate, 3000);
     applyRules();

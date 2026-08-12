@@ -20,6 +20,13 @@ function showsFeed(pathname, overrides = {}) {
   return vm.runInContext("feedVisible(pathname, { ...DEFAULT_SETTINGS, ...overrides })", context);
 }
 
+function disabledByChange(pathname, overrides = {}, changedSettings = {}) {
+  context.pathname = pathname;
+  context.overrides = overrides;
+  context.changedSettings = changedSettings;
+  return vm.runInContext("newlyDisabledRoute(pathname, { ...DEFAULT_SETTINGS, ...overrides }, changedSettings)", context);
+}
+
 test("allows ordinary Instagram routes", () => {
   assert.equal(restriction("/"), null);
   assert.equal(restriction("/some-profile/"), null);
@@ -27,7 +34,8 @@ test("allows ordinary Instagram routes", () => {
 });
 
 test("controls only the homepage feed", () => {
-  assert.equal(showsFeed("/"), true);
+  assert.equal(showsFeed("/"), false);
+  assert.equal(showsFeed("/", { allowFeed: true }), true);
   assert.equal(showsFeed("/", { allowFeed: false }), false);
   assert.equal(showsFeed("/some-profile/", { allowFeed: false }), true);
 });
@@ -50,5 +58,12 @@ test("allows enabled route-based activities", () => {
   assert.equal(restriction("/direct/inbox/"), null);
   assert.equal(restriction("/explore/"), null);
   assert.equal(restriction("/stories/example/"), null);
-  assert.equal(restriction("/ad_tools/"), null);
+  assert.equal(restriction("/ad_tools/", { allowProfessionalDashboard: true }), null);
+});
+
+test("exits only when the active route was just disabled", () => {
+  assert.equal(disabledByChange("/direct/inbox/", { allowMessages: false }, { allowMessages: false }).setting, "allowMessages");
+  assert.equal(disabledByChange("/explore/", { allowSearch: false }, { allowSearch: false }).setting, "allowSearch");
+  assert.equal(disabledByChange("/direct/inbox/", { allowMessages: false }, { allowStories: false }), null);
+  assert.equal(disabledByChange("/some-profile/", {}, { allowMessages: false }), null);
 });

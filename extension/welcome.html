@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Welcome to FreeFeed, a calmer way to use Instagram.">
+    <title>Welcome · FreeFeed</title>
+    <link rel="stylesheet" href="welcome.css">
+  </head>
+  <body>
+    <header class="page-header">
+      <a class="brand" href="welcome.html" aria-label="FreeFeed welcome page">
+        <img src="assets/brand/freefeed-mark.svg" alt="">
+        <span>FreeFeed</span>
+      </a>
+      <span class="extension-status" data-state="active" role="status" aria-live="polite">
+        <span aria-hidden="true"></span>
+        <span data-extension-status>Active</span>
+      </span>
+    </header>
+
+    <main>
+      <section class="welcome-hero" aria-labelledby="welcome-heading">
+        <div class="welcome-intro">
+          <h1 id="welcome-heading">Instagram, with less pull.</h1>
+          <p class="welcome-summary">FreeFeed replaces Instagram’s distracting surfaces with a focused home for the activities you choose. It is ready to use with a calm starting setup.</p>
+
+          <div class="welcome-actions">
+            <a class="primary-action" href="https://www.instagram.com/">Open Instagram</a>
+            <a class="secondary-action" href="options.html">Review settings</a>
+          </div>
+
+          <p class="refresh-note">Already have Instagram open? Refresh that tab once so FreeFeed can take effect.</p>
+        </div>
+
+        <aside class="starting-setup" aria-labelledby="setup-heading">
+          <div class="setup-heading">
+            <div>
+              <h2 id="setup-heading">Your starting setup</h2>
+              <p>The most distracting surfaces begin unavailable.</p>
+            </div>
+            <span class="setup-label">Active now</span>
+          </div>
+
+          <ul class="setup-list">
+            <li>
+              <span><strong>Feed</strong><small>Instagram’s home feed</small></span>
+              <span class="blocked-state">Blocked</span>
+            </li>
+            <li>
+              <span><strong>Reels</strong><small>The Reels feed and individual Reel routes</small></span>
+              <span class="blocked-state">Blocked</span>
+            </li>
+            <li>
+              <span><strong>Professional dashboard</strong><small>Instagram’s professional tools</small></span>
+              <span class="blocked-state">Blocked</span>
+            </li>
+            <li>
+              <span><strong>Useful activities</strong><small>Messages, Search, Notifications, Create, and Stories</small></span>
+              <span class="available-state">Available</span>
+            </li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="privacy-note" aria-labelledby="privacy-heading">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path d="M12 3.25 19 6v5.2c0 4.35-2.75 7.98-7 9.55-4.25-1.57-7-5.2-7-9.55V6l7-2.75Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+          <path d="m9 12 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <h2 id="privacy-heading">Private by design</h2>
+          <p>FreeFeed works locally in your browser. It has no analytics or advertising trackers and does not send your Instagram activity, content, or settings to the developer.</p>
+        </div>
+        <a href="privacy.html">Read the Privacy Policy</a>
+      </section>
+    </main>
+
+    <footer class="page-footer">
+      <p>FreeFeed is not affiliated with or endorsed by Instagram or Meta.</p>
+      <nav aria-label="FreeFeed information">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="https://github.com/ronanrocking/FreeFeed" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <span>About is available from the extension popup.</span>
+      </nav>
+    </footer>
+    <script src="settings.js"></script>
+    <script src="welcome.js"></script>
+  </body>
+</html>
