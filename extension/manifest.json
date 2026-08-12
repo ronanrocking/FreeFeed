@@ -3,7 +3,7 @@
   "name": "FreeFeed",
   "version": "0.7.1",
   "description": "Use Instagram intentionally by choosing which activities stay available.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "alarms"],
   "background": {
     "service_worker": "background.js"
   },

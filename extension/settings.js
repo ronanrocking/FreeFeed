@@ -44,8 +44,24 @@ const ROUTE_RESTRICTIONS = [
   { setting: "allowProfessionalDashboard", pattern: /^\/ad_tools(?:\/|$)/, title: "Dashboard is turned off", message: "The professional dashboard is disabled in your FreeFeed settings." }
 ];
 
+const AUTHENTICATION_ROUTE_PATTERN = /^\/(?:accounts|challenge|checkpoint)(?:\/|$)/;
+
+function isAuthenticationRoute(pathname) {
+  return AUTHENTICATION_ROUTE_PATTERN.test(pathname);
+}
+
+function instagramSessionState(pathname, signedOutSurface, signedInSurface) {
+  if (isAuthenticationRoute(pathname) || signedOutSurface) return "signed-out";
+  if (signedInSurface) return "signed-in";
+  return "unknown";
+}
+
 function routeRestriction(pathname, currentSettings = DEFAULT_SETTINGS) {
   return ROUTE_RESTRICTIONS.find(({ setting, pattern }) => !currentSettings[setting] && pattern.test(pathname)) ?? null;
+}
+
+function routeRestrictionForSession(pathname, currentSettings, sessionState) {
+  return sessionState === "signed-out" ? null : routeRestriction(pathname, currentSettings);
 }
 
 function newlyDisabledRoute(pathname, currentSettings, changedSettings) {

@@ -47,9 +47,28 @@ test("normal Instagram can only be unlocked from the popup", () => {
 test("unlock expiry revokes native dialogs and panels", () => {
   const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
 
-  assert.match(content, /permittedNativeAction = null;\s+nativeActionOpeningUntil = 0;\s+void chrome\.storage\.local\.remove/);
+  assert.match(content, /instagramUnlockUntil = 0;\s+permittedNativeAction = null;\s+nativeActionOpeningUntil = 0;/);
   assert.match(content, /const nativeActionPermitted = dashboardActive && Boolean\(permittedNativeAction\)/);
   assert.match(content, /const nativeDialog = nativeActionPermitted \? findNativeDialog\(\) : null/);
+});
+
+test("unlock expiry is centrally scheduled and reconciled when tabs wake", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "extension", "manifest.json"), "utf8"));
+  const background = fs.readFileSync(path.join(__dirname, "..", "extension", "background.js"), "utf8");
+  const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
+
+  assert.ok(manifest.permissions.includes("alarms"));
+  assert.match(background, /chrome\.alarms\.create\(INSTAGRAM_UNLOCK_ALARM, \{ when: value \}\)/);
+  assert.match(background, /chrome\.alarms\.onAlarm\.addListener/);
+  assert.match(background, /chrome\.storage\.local\.remove\(INSTAGRAM_UNLOCK_KEY\)/);
+  assert.match(content, /window\.addEventListener\("pageshow", reconcilePageState\)/);
+  assert.match(content, /document\.addEventListener\("visibilitychange"/);
+  assert.match(content, /window\.navigation\?\.addEventListener\("navigatesuccess", reconcilePageState\)/);
+});
+
+test("temporary access clearly applies to every open tab", () => {
+  const popup = fs.readFileSync(path.join(__dirname, "..", "extension", "popup.html"), "utf8");
+  assert.match(popup, /normal Instagram in every open tab/);
 });
 
 test("settings use the proven pre-audit storage refresh path", () => {
@@ -159,12 +178,12 @@ test("each refresh rediscovers and reclones live sidebar icons", () => {
 test("disabling the current restricted route exits before applying DOM rules", () => {
   const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
 
-  assert.match(content, /const exitRestriction = !instagramUnlockUntil && \(lockActivated\s+\? routeRestriction\(location\.pathname, settings\)\s+: newlyDisabledRoute\(location\.pathname, settings, changedSettings\)\);/);
+  assert.match(content, /const exitRestriction = !instagramUnlockUntil && sessionState !== "signed-out" && \(lockActivated\s+\? routeRestriction\(location\.pathname, settings\)\s+: newlyDisabledRoute\(location\.pathname, settings, changedSettings\)\);/);
   assert.match(content, /if \(exitRestriction\) \{\s+location\.replace\("\/"\);\s+return;/);
 });
 
 test("unlock expiry safely exits a route that becomes restricted", () => {
   const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
 
-  assert.match(content, /if \(routeRestriction\(location\.pathname, settings\)\) \{\s+location\.replace\("\/"\);\s+return;\s+\}\s+dashboardSignature = "";/);
+  assert.match(content, /if \(routeRestrictionForSession\(location\.pathname, settings, currentInstagramSessionState\(\)\)\) \{\s+location\.replace\("\/"\);\s+return;\s+\}\s+dashboardSignature = "";/);
 });

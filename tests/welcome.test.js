@@ -10,7 +10,7 @@ test("opens the welcome page only on a first installation", () => {
   const background = fs.readFileSync(path.join(extensionRoot, "background.js"), "utf8");
 
   assert.equal(manifest.background.service_worker, "background.js");
-  assert.deepEqual(manifest.permissions, ["storage"]);
+  assert.deepEqual(manifest.permissions, ["storage", "alarms"]);
   assert.match(background, /chrome\.runtime\.onInstalled\.addListener/);
   assert.match(background, /reason !== "install"/);
   assert.match(background, /chrome\.tabs\.create/);

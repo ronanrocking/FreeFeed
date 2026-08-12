@@ -27,6 +27,13 @@ function disabledByChange(pathname, overrides = {}, changedSettings = {}) {
   return vm.runInContext("newlyDisabledRoute(pathname, { ...DEFAULT_SETTINGS, ...overrides }, changedSettings)", context);
 }
 
+function sessionState(pathname, signedOutSurface = false, signedInSurface = false) {
+  context.pathname = pathname;
+  context.signedOutSurface = signedOutSurface;
+  context.signedInSurface = signedInSurface;
+  return vm.runInContext("instagramSessionState(pathname, signedOutSurface, signedInSurface)", context);
+}
+
 test("allows ordinary Instagram routes", () => {
   assert.equal(restriction("/"), null);
   assert.equal(restriction("/some-profile/"), null);
@@ -59,6 +66,32 @@ test("allows enabled route-based activities", () => {
   assert.equal(restriction("/explore/"), null);
   assert.equal(restriction("/stories/example/"), null);
   assert.equal(restriction("/ad_tools/", { allowProfessionalDashboard: true }), null);
+});
+
+test("recognizes authentication and account-recovery routes", () => {
+  assert.equal(sessionState("/accounts/login/"), "signed-out");
+  assert.equal(sessionState("/accounts/password/reset/"), "signed-out");
+  assert.equal(sessionState("/challenge/example/"), "signed-out");
+  assert.equal(sessionState("/checkpoint/example/"), "signed-out");
+});
+
+test("requires positive authentication evidence before replacing the root page", () => {
+  assert.equal(sessionState("/"), "unknown");
+  assert.equal(sessionState("/", true, false), "signed-out");
+  assert.equal(sessionState("/", false, true), "signed-in");
+  assert.equal(sessionState("/", true, true), "signed-out");
+});
+
+test("signed-out surfaces override restrictions so login remains usable", () => {
+  context.pathname = "/reels/";
+  assert.equal(vm.runInContext(
+    "routeRestrictionForSession(pathname, DEFAULT_SETTINGS, 'signed-out')",
+    context
+  ), null);
+  assert.equal(vm.runInContext(
+    "routeRestrictionForSession(pathname, DEFAULT_SETTINGS, 'unknown').setting",
+    context
+  ), "allowReels");
 });
 
 test("exits only when the active route was just disabled", () => {

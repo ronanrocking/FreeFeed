@@ -35,6 +35,7 @@ let currentMode = "native";
 let permittedNativeAction = null;
 let nativeActionOpeningUntil = 0;
 let updateScheduled = false;
+let observedBody = null;
 let inertElements = new Map();
 let hiddenSearchNodes = new Set();
 
@@ -340,6 +341,32 @@ function pauseRestrictedMedia(restriction) {
   }
 }
 
+function signedOutSurfacePresent() {
+  return Boolean(document.querySelector([
+    'form[action*="/accounts/login"]',
+    'input[name="username"]',
+    'input[name="password"]',
+    'input[autocomplete="username"]',
+    'input[autocomplete="current-password"]'
+  ].join(", ")));
+}
+
+function signedInSurfacePresent(sideNavigation) {
+  if (sideNavigation.panel) return true;
+
+  const home = document.querySelector('a[href="/"]');
+  const accountNavigation = document.querySelector('a[href^="/direct/"], a[href="/reels/"]');
+  return Boolean(home && accountNavigation);
+}
+
+function currentInstagramSessionState(sideNavigation = findSideNavigation()) {
+  return instagramSessionState(
+    location.pathname,
+    signedOutSurfacePresent(),
+    signedInSurfacePresent(sideNavigation)
+  );
+}
+
 function scheduleUnlockExpiry() {
   clearTimeout(unlockTimer);
   unlockTimer = 0;
@@ -351,10 +378,7 @@ function scheduleUnlockExpiry() {
     instagramUnlockUntil = 0;
     permittedNativeAction = null;
     nativeActionOpeningUntil = 0;
-    void chrome.storage.local.remove(INSTAGRAM_UNLOCK_KEY).catch((error) => {
-      console.error("FreeFeed could not clear an expired unlock.", error);
-    });
-    if (routeRestriction(location.pathname, settings)) {
+    if (routeRestrictionForSession(location.pathname, settings, currentInstagramSessionState())) {
       location.replace("/");
       return;
     }
@@ -377,8 +401,17 @@ function applyRules() {
   const sideNavigation = findSideNavigation();
   const dashboard = document.getElementById(DASHBOARD_ID) ?? createDashboard();
   const instagramUnlocked = activeUnlockDeadline(instagramUnlockUntil) > 0;
-  const restriction = instagramUnlocked ? null : routeRestriction(location.pathname, settings);
-  const mode = instagramUnlocked ? "native" : restriction ? "blocked" : location.pathname === "/" ? "home" : "native";
+  const sessionState = currentInstagramSessionState(sideNavigation);
+  const restriction = instagramUnlocked
+    ? null
+    : routeRestrictionForSession(location.pathname, settings, sessionState);
+  const mode = instagramUnlocked
+    ? "native"
+    : restriction
+      ? "blocked"
+      : location.pathname === "/" && sessionState === "signed-in"
+        ? "home"
+        : "native";
   const dashboardActive = mode !== "native";
   const focusedSearch = !instagramUnlocked && settings.allowSearch && /^\/explore(?:\/|$)/.test(location.pathname);
   const nativeActionPermitted = dashboardActive && Boolean(permittedNativeAction);
@@ -427,7 +460,10 @@ function applyRules() {
   dashboard.style.setProperty("--freefeed-native-panel-width", `${Math.round(nativePanelWidth)}px`);
   document.documentElement.classList.toggle(LOCKED_CLASS, dashboardActive);
   document.body.classList.toggle(LOCKED_CLASS, dashboardActive);
-  document.documentElement.classList.toggle(FEED_HIDDEN_CLASS, !feedVisible(location.pathname, settings));
+  document.documentElement.classList.toggle(
+    FEED_HIDDEN_CLASS,
+    sessionState !== "signed-out" && !feedVisible(location.pathname, settings)
+  );
   document.documentElement.classList.toggle(RESTRICTED_CLASS, Boolean(restriction));
   document.body.classList.toggle(RESTRICTED_CLASS, Boolean(restriction));
   currentMode = mode;
@@ -480,6 +516,42 @@ window.addEventListener("touchmove", blockPageScroll, { capture: true, passive: 
 document.addEventListener("keydown", keepFocusInDashboard, true);
 
 const pageObserver = new MutationObserver(scheduleUpdate);
+const documentObserver = new MutationObserver(observeCurrentBody);
+
+function observeCurrentBody() {
+  if (!document.body || document.body === observedBody) return;
+  pageObserver.disconnect();
+  observedBody = document.body;
+  pageObserver.observe(observedBody, { childList: true, subtree: true });
+  scheduleUpdate();
+}
+
+function reconcilePageState() {
+  if (instagramUnlockUntil && !activeUnlockDeadline(instagramUnlockUntil)) {
+    instagramUnlockUntil = 0;
+    permittedNativeAction = null;
+    nativeActionOpeningUntil = 0;
+    clearTimeout(unlockTimer);
+    unlockTimer = 0;
+    if (routeRestrictionForSession(location.pathname, settings, currentInstagramSessionState())) {
+      location.replace("/");
+      return;
+    }
+  } else {
+    scheduleUnlockExpiry();
+  }
+
+  dashboardSignature = "";
+  applyRules();
+}
+
+window.addEventListener("pageshow", reconcilePageState);
+window.addEventListener("popstate", reconcilePageState);
+window.addEventListener("hashchange", reconcilePageState);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) reconcilePageState();
+});
+window.navigation?.addEventListener("navigatesuccess", reconcilePageState);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local") return;
@@ -504,7 +576,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 
   if (!changed) return;
-  const exitRestriction = !instagramUnlockUntil && (lockActivated
+  const sessionState = currentInstagramSessionState();
+  const exitRestriction = !instagramUnlockUntil && sessionState !== "signed-out" && (lockActivated
     ? routeRestriction(location.pathname, settings)
     : newlyDisabledRoute(location.pathname, settings, changedSettings));
   if (exitRestriction) {
@@ -540,7 +613,8 @@ async function startFreeFeed() {
     }
     instagramUnlockUntil = activeUnlockDeadline(stored[INSTAGRAM_UNLOCK_KEY]);
     scheduleUnlockExpiry();
-    pageObserver.observe(document.body, { childList: true, subtree: true });
+    documentObserver.observe(document.documentElement, { childList: true });
+    observeCurrentBody();
     setTimeout(scheduleUpdate, 3000);
     applyRules();
   } finally {
