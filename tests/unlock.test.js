@@ -49,7 +49,16 @@ test("unlock expiry revokes native dialogs and panels", () => {
 
   assert.match(content, /instagramUnlockUntil = 0;\s+permittedNativeAction = null;\s+nativeActionOpeningUntil = 0;/);
   assert.match(content, /const nativeActionPermitted = dashboardActive && Boolean\(permittedNativeAction\)/);
-  assert.match(content, /const nativeDialog = nativeActionPermitted \? findNativeDialog\(\) : null/);
+  assert.match(content, /findNativeActionSurfaces\(permittedNativeAction\)/);
+});
+
+test("notifications keep the FreeFeed home visible beside Instagram's panel", () => {
+  const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
+
+  assert.match(content, /if \(actionName === "notifications" && detectedDialog\) \{\s+return \{ nativeDialog: null, nativePanel: detectedDialog \};/);
+  assert.match(content, /dashboard\.classList\.toggle\(NATIVE_DIALOG_CLASS, Boolean\(nativeDialog\)\)/);
+  assert.match(content, /const nativePanelWidth = nativePanel\?\.getBoundingClientRect\(\)\.right \?\? 0/);
+  assert.match(content, /!element\.contains\(nativePanel\)/);
 });
 
 test("unlock expiry is centrally scheduled and reconciled when tabs wake", () => {
@@ -89,17 +98,30 @@ test("high-distraction features are unavailable by default", () => {
 
   assert.equal(defaults.allowFeed, false);
   assert.equal(defaults.allowReels, false);
-  assert.equal(defaults.allowProfessionalDashboard, false);
+  assert.equal(defaults.allowProfessionalDashboard, undefined);
 });
 
 test("enabling requires the delay, acknowledgement, and exact phrase", () => {
-  const phrase = run("enableConfirmationPhrase(name)", { name: "Professional dashboard" });
+  const phrase = run("enableConfirmationPhrase(name)", { name: "Reels" });
 
-  assert.equal(phrase, "ENABLE PROFESSIONAL DASHBOARD");
+  assert.equal(phrase, "ENABLE REELS");
   assert.equal(run("enableConfirmationReady(availableAt, true, phrase, phrase, now)", { availableAt: 20_000, phrase, now: 19_999 }), false);
   assert.equal(run("enableConfirmationReady(availableAt, false, phrase, phrase, now)", { availableAt: 20_000, phrase, now: 20_000 }), false);
-  assert.equal(run("enableConfirmationReady(availableAt, true, 'enable professional dashboard', phrase, now)", { availableAt: 20_000, phrase, now: 20_000 }), false);
+  assert.equal(run("enableConfirmationReady(availableAt, true, 'enable reels', phrase, now)", { availableAt: 20_000, phrase, now: 20_000 }), false);
   assert.equal(run("enableConfirmationReady(availableAt, true, phrase, phrase, now)", { availableAt: 20_000, phrase, now: 20_000 }), true);
+});
+
+test("professional dashboard is optional and always allowed when Instagram exposes it", () => {
+  const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
+  const options = fs.readFileSync(path.join(__dirname, "..", "extension", "options.html"), "utf8");
+  const welcome = fs.readFileSync(path.join(__dirname, "..", "extension", "welcome.html"), "utf8");
+
+  assert.match(content, /\{ name: "professionalDashboard", label: "Dashboard", nav: "professionalDashboard", row: "secondary", optional: true \}/);
+  assert.doesNotMatch(content, /professionalDashboard: "allowProfessionalDashboard"/);
+  assert.match(content, /panel\.querySelector\('a\[href\^="\/professional_dashboard"\], a\[href\^="\/ad_tools"\]'\)/);
+  assert.doesNotMatch(content, /professionalDashboard:[^\n]*beforeProfile/);
+  assert.doesNotMatch(options, /Professional dashboard|allowProfessionalDashboard/i);
+  assert.doesNotMatch(welcome, /Professional dashboard/i);
 });
 
 test("settings page makes disabling immediate and enabling deliberate", () => {

@@ -23,12 +23,12 @@ test("welcome page presents the real setup and all first-run actions", () => {
   assert.match(welcome, /Instagram, with less pull\./);
   assert.match(welcome, /href="https:\/\/www\.instagram\.com\/">Open Instagram/);
   assert.match(welcome, /href="options\.html">Review settings/);
-  assert.match(welcome, /<strong>Feed<\/strong>[\s\S]*?<span class="blocked-state">Blocked<\/span>/);
-  assert.match(welcome, /<strong>Reels<\/strong>[\s\S]*?<span class="blocked-state">Blocked<\/span>/);
-  assert.match(welcome, /<strong>Professional dashboard<\/strong>[\s\S]*?<span class="blocked-state">Blocked<\/span>/);
+  assert.doesNotMatch(welcome, /Your starting setup|starting-setup|setup-list/);
+  assert.match(welcome, /class="product-preview"/);
+  assert.match(welcome, /src="assets\/freefeed-dashboard-preview\.png" width="1767" height="861"/);
+  assert.match(welcome, /This is what you’ll see when you open Instagram\./);
   assert.doesNotMatch(welcome, /How FreeFeed works/);
   assert.match(welcome, /class="extension-status" data-state="active"/);
-  assert.match(welcome, /class="blocked-state">Blocked/);
   assert.match(welcome, /has no analytics or advertising trackers/);
   assert.match(welcome, /href="privacy\.html"/);
   assert.match(welcome, /href="https:\/\/github\.com\/ronanrocking\/FreeFeed"/);

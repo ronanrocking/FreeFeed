@@ -26,8 +26,9 @@ FreeFeed runs as a Manifest V3 Chrome extension on `instagram.com`. A first-inst
 
 - Preserve the activity settings, dashboard action groups, route restrictions, and focus management while keeping permanent settings out of the popup.
 - Keep the existing UI structure; branding work must not introduce a major information-architecture or layout remap.
-- Supported activity controls are Feed, Messages, Search, Notifications, Create, Stories, Reels, and Professional dashboard.
-- Feed, Reels, and Professional dashboard are disabled by default; the other current defaults remain enabled.
+- Supported activity controls are Feed, Messages, Search, Notifications, Create, Stories, and Reels.
+- Feed and Reels are disabled by default; the other current defaults remain enabled.
+- The professional dashboard is not configurable. When Instagram exposes it for an eligible account, FreeFeed keeps it available and includes it in the dashboard; otherwise FreeFeed omits it without error.
 - Disabling an activity remains immediate. Enabling one requires a 10-second waiting period, explicit acknowledgement, and an exact activity-specific confirmation phrase.
 - Normal Instagram can only be entered from the extension popup through a temporary 2, 5, or 15 minute unlock. Settings must automatically resume when the deadline expires in every open Instagram tab.
 - The extension must remain dependency-free and compatible with the current Manifest V3 architecture.

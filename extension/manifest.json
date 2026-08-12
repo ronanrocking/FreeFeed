@@ -2,7 +2,8 @@
   "manifest_version": 3,
   "name": "FreeFeed",
   "version": "0.7.1",
-  "description": "Use Instagram intentionally by choosing which activities stay available.",
+  "minimum_chrome_version": "105",
+  "description": "A Clean, Distraction-free UI for Instagram.",
   "permissions": ["storage", "alarms"],
   "background": {
     "service_worker": "background.js"

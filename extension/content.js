@@ -13,8 +13,7 @@ const NAV_SETTINGS = {
   messages: "allowMessages",
   search: "allowSearch",
   notifications: "allowNotifications",
-  create: "allowCreate",
-  professionalDashboard: "allowProfessionalDashboard"
+  create: "allowCreate"
 };
 
 const ACTIONS = [
@@ -24,7 +23,7 @@ const ACTIONS = [
   { name: "create", label: "Create", setting: "allowCreate", nav: "create", row: "primary" },
   { name: "stories", label: "Stories", setting: "allowStories", row: "secondary" },
   { name: "reels", label: "Reels", setting: "allowReels", nav: "reels", row: "secondary", fallback: "/reels/" },
-  { name: "professionalDashboard", label: "Dashboard", setting: "allowProfessionalDashboard", nav: "professionalDashboard", row: "secondary", optional: true },
+  { name: "professionalDashboard", label: "Dashboard", nav: "professionalDashboard", row: "secondary", optional: true },
   { name: "profile", label: "Profile", nav: "profile", row: "secondary" }
 ];
 
@@ -94,7 +93,8 @@ function findSideNavigation() {
       ...core,
       notifications: findControl("Notifications", panel) ?? beforeProfile[0] ?? null,
       create: findControl("New post", panel) ?? beforeProfile[1] ?? null,
-      professionalDashboard: findControl("Professional dashboard", panel) ?? beforeProfile[2] ?? null,
+      professionalDashboard: findControl("Professional dashboard", panel)
+        ?? panel.querySelector('a[href^="/professional_dashboard"], a[href^="/ad_tools"]'),
       profile,
       settings: findControl("Settings", panel) ?? afterProfile[0] ?? null,
       alsoFromMeta: findControl("Also from Meta", panel) ?? afterProfile[1] ?? null
@@ -293,6 +293,19 @@ function findNativeDialog() {
     .find((dialog) => !dialog.closest(`#${DASHBOARD_ID}`) && dialog.getBoundingClientRect().width > 0) ?? null;
 }
 
+function findNativeActionSurfaces(actionName) {
+  const detectedDialog = findNativeDialog();
+
+  if (actionName === "notifications" && detectedDialog) {
+    return { nativeDialog: null, nativePanel: detectedDialog };
+  }
+
+  return {
+    nativeDialog: detectedDialog,
+    nativePanel: detectedDialog ? null : findNativePanel()
+  };
+}
+
 function findSearchRecommendations() {
   const input = document.querySelector('main input[aria-label="Search input"], main input[placeholder="Search"], main input[type="text"]');
   if (!input) return [];
@@ -405,18 +418,24 @@ function applyRules() {
   const restriction = instagramUnlocked
     ? null
     : routeRestrictionForSession(location.pathname, settings, sessionState);
+  const notificationsBesideHome = notificationPanelKeepsHome(
+    location.pathname,
+    sessionState,
+    permittedNativeAction
+  );
   const mode = instagramUnlocked
     ? "native"
     : restriction
       ? "blocked"
-      : location.pathname === "/" && sessionState === "signed-in"
+      : notificationsBesideHome || freeFeedHomeAvailable(location.pathname, sessionState, currentMode)
         ? "home"
         : "native";
   const dashboardActive = mode !== "native";
   const focusedSearch = !instagramUnlocked && settings.allowSearch && /^\/explore(?:\/|$)/.test(location.pathname);
   const nativeActionPermitted = dashboardActive && Boolean(permittedNativeAction);
-  const nativeDialog = nativeActionPermitted ? findNativeDialog() : null;
-  const nativePanel = nativeActionPermitted && !nativeDialog ? findNativePanel() : null;
+  const { nativeDialog, nativePanel } = nativeActionPermitted
+    ? findNativeActionSurfaces(permittedNativeAction)
+    : { nativeDialog: null, nativePanel: null };
 
   if (!dashboardActive) {
     permittedNativeAction = null;
@@ -445,9 +464,11 @@ function applyRules() {
   focusDashboard(dashboard, mode);
   const nativeRoots = Array.from(document.body.children)
     .filter((element) => element !== dashboard && !["SCRIPT", "STYLE"].includes(element.tagName));
+  const nativeContentRoots = [document.querySelector("main"), document.querySelector('[role="contentinfo"]')]
+    .filter((element) => element && !element.contains(nativePanel));
   const inertTargets = dashboardActive && !nativeDialog
     ? nativePanel
-      ? [document.querySelector("main"), document.querySelector('[role="contentinfo"]')]
+      ? nativeContentRoots
       : nativeRoots
     : recommendations;
   updateSearchVisibility(recommendations);

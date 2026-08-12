@@ -34,6 +34,20 @@ function sessionState(pathname, signedOutSurface = false, signedInSurface = fals
   return vm.runInContext("instagramSessionState(pathname, signedOutSurface, signedInSurface)", context);
 }
 
+function showsFreeFeedHome(pathname, state, previousMode = "native") {
+  context.pathname = pathname;
+  context.state = state;
+  context.previousMode = previousMode;
+  return vm.runInContext("freeFeedHomeAvailable(pathname, state, previousMode)", context);
+}
+
+function notificationsKeepHome(pathname, state, nativeAction) {
+  context.pathname = pathname;
+  context.state = state;
+  context.nativeAction = nativeAction;
+  return vm.runInContext("notificationPanelKeepsHome(pathname, state, nativeAction)", context);
+}
+
 test("allows ordinary Instagram routes", () => {
   assert.equal(restriction("/"), null);
   assert.equal(restriction("/some-profile/"), null);
@@ -58,14 +72,14 @@ test("enforces disabled route-based activities", () => {
   assert.equal(restriction("/direct/inbox/", { allowMessages: false }).setting, "allowMessages");
   assert.equal(restriction("/explore/", { allowSearch: false }).setting, "allowSearch");
   assert.equal(restriction("/stories/example/", { allowStories: false }).setting, "allowStories");
-  assert.equal(restriction("/ad_tools/", { allowProfessionalDashboard: false }).setting, "allowProfessionalDashboard");
 });
 
 test("allows enabled route-based activities", () => {
   assert.equal(restriction("/direct/inbox/"), null);
   assert.equal(restriction("/explore/"), null);
   assert.equal(restriction("/stories/example/"), null);
-  assert.equal(restriction("/ad_tools/", { allowProfessionalDashboard: true }), null);
+  assert.equal(restriction("/ad_tools/"), null);
+  assert.equal(restriction("/ad_tools/", { allowProfessionalDashboard: false }), null);
 });
 
 test("recognizes authentication and account-recovery routes", () => {
@@ -80,6 +94,22 @@ test("requires positive authentication evidence before replacing the root page",
   assert.equal(sessionState("/", true, false), "signed-out");
   assert.equal(sessionState("/", false, true), "signed-in");
   assert.equal(sessionState("/", true, true), "signed-out");
+});
+
+test("preserves a confirmed FreeFeed home through transient unknown Instagram UI", () => {
+  assert.equal(showsFreeFeedHome("/", "signed-in", "native"), true);
+  assert.equal(showsFreeFeedHome("/", "unknown", "home"), true);
+  assert.equal(showsFreeFeedHome("/", "unknown", "native"), false);
+  assert.equal(showsFreeFeedHome("/", "signed-out", "home"), false);
+  assert.equal(showsFreeFeedHome("/explore/", "signed-in", "home"), false);
+});
+
+test("keeps notifications beside home when Instagram navigation signals disappear", () => {
+  assert.equal(notificationsKeepHome("/", "signed-in", "notifications"), true);
+  assert.equal(notificationsKeepHome("/", "unknown", "notifications"), true);
+  assert.equal(notificationsKeepHome("/", "signed-out", "notifications"), false);
+  assert.equal(notificationsKeepHome("/", "unknown", "search"), false);
+  assert.equal(notificationsKeepHome("/explore/", "signed-in", "notifications"), false);
 });
 
 test("signed-out surfaces override restrictions so login remains usable", () => {

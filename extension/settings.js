@@ -5,8 +5,7 @@ const DEFAULT_SETTINGS = {
   allowSearch: true,
   allowNotifications: true,
   allowCreate: true,
-  allowStories: true,
-  allowProfessionalDashboard: false
+  allowStories: true
 };
 
 const INSTAGRAM_UNLOCK_KEY = "instagramUnlockUntil";
@@ -40,8 +39,7 @@ const ROUTE_RESTRICTIONS = [
   { setting: "allowReels", pattern: /^\/reels?(?:\/|$)/, title: "Reels are blocked", message: "FreeFeed is keeping you out of the Reels feed." },
   { setting: "allowStories", pattern: /^\/stories(?:\/|$)/, title: "Stories are turned off", message: "Stories are disabled in your FreeFeed settings." },
   { setting: "allowMessages", pattern: /^\/direct(?:\/|$)/, title: "Messages are turned off", message: "Messages are disabled in your FreeFeed settings." },
-  { setting: "allowSearch", pattern: /^\/explore(?:\/|$)/, title: "Search is turned off", message: "Search and Explore are disabled in your FreeFeed settings." },
-  { setting: "allowProfessionalDashboard", pattern: /^\/ad_tools(?:\/|$)/, title: "Dashboard is turned off", message: "The professional dashboard is disabled in your FreeFeed settings." }
+  { setting: "allowSearch", pattern: /^\/explore(?:\/|$)/, title: "Search is turned off", message: "Search and Explore are disabled in your FreeFeed settings." }
 ];
 
 const AUTHENTICATION_ROUTE_PATTERN = /^\/(?:accounts|challenge|checkpoint)(?:\/|$)/;
@@ -54,6 +52,18 @@ function instagramSessionState(pathname, signedOutSurface, signedInSurface) {
   if (isAuthenticationRoute(pathname) || signedOutSurface) return "signed-out";
   if (signedInSurface) return "signed-in";
   return "unknown";
+}
+
+function freeFeedHomeAvailable(pathname, sessionState, previousMode = "native") {
+  return pathname === "/"
+    && sessionState !== "signed-out"
+    && (sessionState === "signed-in" || previousMode === "home");
+}
+
+function notificationPanelKeepsHome(pathname, sessionState, nativeAction) {
+  return pathname === "/"
+    && sessionState !== "signed-out"
+    && nativeAction === "notifications";
 }
 
 function routeRestriction(pathname, currentSettings = DEFAULT_SETTINGS) {

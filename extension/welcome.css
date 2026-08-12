@@ -180,89 +180,35 @@ h1 {
   font-size: 12px;
 }
 
-.starting-setup {
+.product-preview {
+  min-width: 0;
+  margin: 0;
+}
+
+.product-preview-viewport {
+  position: relative;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
   border: 1px solid var(--freefeed-line);
   border-radius: 14px;
-  background: var(--freefeed-surface);
+  background: #0f1116;
 }
 
-.setup-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 22px 24px 18px;
-  border-bottom: 1px solid var(--freefeed-line);
+.product-preview img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: auto;
+  height: 120%;
+  max-width: none;
+  transform: translate(-50%, -50%);
 }
 
-.setup-heading h2 {
-  margin-bottom: 4px;
-  font-size: 17px;
-  letter-spacing: -0.015em;
-}
-
-.setup-heading p {
-  margin-bottom: 0;
-  color: var(--freefeed-muted);
-  font-size: 13px;
-}
-
-.setup-label {
-  flex: 0 0 auto;
-  color: var(--freefeed-success);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.setup-list {
-  margin: 0;
-  padding: 0 24px;
-  list-style: none;
-}
-
-.setup-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 68px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--freefeed-line);
-}
-
-.setup-list li:last-child {
-  border-bottom: 0;
-}
-
-.setup-list li > span:first-child {
-  display: grid;
-  gap: 2px;
-}
-
-.setup-list strong {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.setup-list small {
+.product-preview figcaption {
+  margin-top: 10px;
   color: var(--freefeed-muted);
   font-size: 12px;
-}
-
-.blocked-state,
-.available-state {
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.blocked-state {
-  color: var(--freefeed-error);
-}
-
-.available-state {
-  color: var(--freefeed-success);
 }
 
 .privacy-note h2 {
@@ -404,16 +350,12 @@ a:focus-visible {
     width: 100%;
   }
 
-  .setup-heading,
-  .setup-list {
-    padding-right: 18px;
-    padding-left: 18px;
+  .product-preview-viewport {
+    aspect-ratio: 4 / 3;
   }
 
-  .setup-list li {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
+  .product-preview img {
+    height: 135%;
   }
 
   .privacy-note {
@@ -455,9 +397,7 @@ a:focus-visible {
 
 @media (forced-colors: active) {
   .page-header,
-  .starting-setup,
-  .setup-heading,
-  .setup-list li,
+  .product-preview-viewport,
   .privacy-note,
   .page-footer,
   .secondary-action {
