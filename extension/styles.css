@@ -169,6 +169,37 @@ html.freefeed-page-locked body.freefeed-page-locked {
   color: inherit;
 }
 
+.freefeed-action-icon {
+  position: relative;
+  display: flex;
+  width: 32px;
+  height: 32px;
+}
+
+.freefeed-action-icon > svg,
+.freefeed-action-icon > img {
+  width: 32px;
+  height: 32px;
+}
+
+.freefeed-action-badge {
+  position: absolute;
+  top: -7px;
+  right: -11px;
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid var(--freefeed-background);
+  border-radius: 10px;
+  color: #ffffff;
+  background: #ed4956;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  place-items: center;
+}
+
 .freefeed-action img {
   width: 32px;
   height: 32px;
@@ -176,7 +207,7 @@ html.freefeed-page-locked body.freefeed-page-locked {
   object-fit: cover;
 }
 
-.freefeed-action span {
+.freefeed-action > span:not(.freefeed-action-icon) {
   max-width: 100%;
   overflow: hidden;
   font-size: 13px;
