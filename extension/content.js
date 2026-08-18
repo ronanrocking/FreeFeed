@@ -143,6 +143,18 @@ function actionAvailable(action, sideNavigation) {
   return Boolean(sideNavigation.items[action.nav] || action.fallback);
 }
 
+function unreadMessageCount(sideNavigation) {
+  const messages = sideNavigation.items.messages;
+  if (!messages) return 0;
+
+  const unreadLabel = Array.from(messages.querySelectorAll("[aria-label]"))
+    .map((element) => element.getAttribute("aria-label"))
+    .find((label) => /\b\d+\s+new notifications?\b/i.test(label ?? ""));
+  const count = Number(unreadLabel?.match(/\d+/)?.[0]);
+
+  return Number.isSafeInteger(count) && count > 0 ? count : 0;
+}
+
 function createDashboard() {
   const dashboard = document.createElement("section");
   dashboard.id = DASHBOARD_ID;
@@ -180,6 +192,7 @@ function renderHome(dashboard, sideNavigation) {
   });
   const signature = JSON.stringify({
     actions: actions.map((action) => [action.name, Boolean(cloneVisual(action, sideNavigation)), actionAvailable(action, sideNavigation)]),
+    unreadMessages: unreadMessageCount(sideNavigation),
     profile: sideNavigation.items.profile?.querySelector("img")?.src,
     ready: Boolean(sideNavigation.panel),
     timedOut: !sideNavigation.panel && performance.now() >= 3000
@@ -191,13 +204,29 @@ function renderHome(dashboard, sideNavigation) {
     const buttons = actions.filter((action) => action.row === row).map((action) => {
       const button = document.createElement("button");
       const visual = cloneVisual(action, sideNavigation);
+      const unreadMessages = action.name === "messages" ? unreadMessageCount(sideNavigation) : 0;
       button.className = `freefeed-action${visual ? "" : " freefeed-action-no-icon"}`;
       button.type = "button";
       button.dataset.freefeedAction = action.name;
-      button.setAttribute("aria-label", action.label);
+      button.setAttribute(
+        "aria-label",
+        unreadMessages ? `${action.label}, ${unreadMessages} unread ${unreadMessages === 1 ? "message" : "messages"}` : action.label
+      );
       button.title = action.label;
       button.disabled = !actionAvailable(action, sideNavigation);
-      if (visual) button.append(visual);
+      if (visual) {
+        const icon = document.createElement("span");
+        icon.className = "freefeed-action-icon";
+        icon.append(visual);
+        if (unreadMessages) {
+          const badge = document.createElement("span");
+          badge.className = "freefeed-action-badge";
+          badge.setAttribute("aria-hidden", "true");
+          badge.textContent = unreadMessages > 99 ? "99+" : String(unreadMessages);
+          icon.append(badge);
+        }
+        button.append(icon);
+      }
       button.append(Object.assign(document.createElement("span"), { textContent: action.label }));
       return button;
     });
@@ -217,9 +246,16 @@ function renderHome(dashboard, sideNavigation) {
 
 function renderBlocked(dashboard, restriction) {
   const blocked = dashboard.querySelector('[data-freefeed-view="blocked"]');
-  blocked.querySelector("h1").textContent = restriction.title;
-  blocked.querySelector("p").textContent = restriction.message;
-  dashboard.setAttribute("aria-label", restriction.title);
+  const title = blocked.querySelector("h1");
+  const message = blocked.querySelector("p");
+
+  // This runs from a body-wide MutationObserver. Avoid rewriting unchanged text,
+  // otherwise the rewrite schedules another observer pass indefinitely.
+  if (title.textContent !== restriction.title) title.textContent = restriction.title;
+  if (message.textContent !== restriction.message) message.textContent = restriction.message;
+  if (dashboard.getAttribute("aria-label") !== restriction.title) {
+    dashboard.setAttribute("aria-label", restriction.title);
+  }
 }
 
 function waitForControl(label, timeout = 2000) {
@@ -455,7 +491,10 @@ function applyRules() {
   if (restriction) renderBlocked(dashboard, restriction);
   dashboard.querySelector('[data-freefeed-view="home"]').hidden = mode !== "home";
   dashboard.querySelector('[data-freefeed-view="blocked"]').hidden = mode !== "blocked";
-  dashboard.setAttribute("aria-label", restriction?.title ?? "FreeFeed home");
+  const dashboardLabel = restriction?.title ?? "FreeFeed home";
+  if (dashboard.getAttribute("aria-label") !== dashboardLabel) {
+    dashboard.setAttribute("aria-label", dashboardLabel);
+  }
   dashboard.classList.toggle(ACTIVE_CLASS, dashboardActive);
 
   dashboard.classList.toggle(NATIVE_DIALOG_CLASS, Boolean(nativeDialog));

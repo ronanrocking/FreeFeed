@@ -197,6 +197,27 @@ test("each refresh rediscovers and reclones live sidebar icons", () => {
   assert.doesNotMatch(content, /requestAnimationFrame/);
 });
 
+test("the dashboard mirrors Instagram's accessible unread-message count", () => {
+  const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "..", "extension", "styles.css"), "utf8");
+
+  assert.match(content, /function unreadMessageCount\(sideNavigation\)/);
+  assert.match(content, /new notifications\?/);
+  assert.match(content, /unreadMessages: unreadMessageCount\(sideNavigation\)/);
+  assert.match(content, /freefeed-action-badge/);
+  assert.match(styles, /\.freefeed-action-badge/);
+  assert.match(styles, /\.freefeed-action > span:not\(\.freefeed-action-icon\)/);
+});
+
+test("blocked-route rendering does not feed the body mutation observer", () => {
+  const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
+
+  assert.match(content, /if \(title\.textContent !== restriction\.title\) title\.textContent = restriction\.title;/);
+  assert.match(content, /if \(message\.textContent !== restriction\.message\) message\.textContent = restriction\.message;/);
+  assert.match(content, /if \(dashboard\.getAttribute\("aria-label"\) !== restriction\.title\)/);
+  assert.match(content, /const pageObserver = new MutationObserver\(scheduleUpdate\)/);
+});
+
 test("disabling the current restricted route exits before applying DOM rules", () => {
   const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
 
