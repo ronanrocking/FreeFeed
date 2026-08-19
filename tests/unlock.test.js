@@ -197,6 +197,15 @@ test("each refresh rediscovers and reclones live sidebar icons", () => {
   assert.doesNotMatch(content, /requestAnimationFrame/);
 });
 
+test("a hidden feed is explained only during temporary access", () => {
+  const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
+
+  assert.match(content, /Feed disabled\. Change in Settings/);
+  assert.match(content, /nativeFeedNotice\.hidden = !instagramUnlocked \|\| !feedHidden/);
+  assert.match(content, /const feedHidden = sessionState !== "signed-out" && !feedVisible\(location\.pathname, settings\)/);
+  assert.doesNotMatch(content, /freefeed-feed-state/);
+});
+
 test("the dashboard mirrors Instagram's accessible unread-message count", () => {
   const content = fs.readFileSync(path.join(__dirname, "..", "extension", "content.js"), "utf8");
   const styles = fs.readFileSync(path.join(__dirname, "..", "extension", "styles.css"), "utf8");

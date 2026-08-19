@@ -7,6 +7,7 @@ const RESTRICTED_CLASS = "freefeed-route-restricted";
 const ACTIVE_CLASS = "freefeed-active";
 const NATIVE_DIALOG_CLASS = "freefeed-native-dialog-open";
 const DASHBOARD_ID = "freefeed-dashboard";
+const NATIVE_FEED_NOTICE_ID = "freefeed-native-feed-notice";
 
 const NAV_SETTINGS = {
   reels: "allowReels",
@@ -183,6 +184,29 @@ function createDashboard() {
   dashboard.addEventListener("click", handleDashboardClick);
   document.body.append(dashboard);
   return dashboard;
+}
+
+function createNativeFeedNotice() {
+  const notice = document.createElement("p");
+  notice.id = NATIVE_FEED_NOTICE_ID;
+  notice.setAttribute("role", "status");
+  notice.textContent = "Feed disabled. Change in Settings";
+  notice.hidden = true;
+  document.body.append(notice);
+  return notice;
+}
+
+function feedColumnCenter() {
+  const article = document.querySelector("main article");
+  const candidates = [];
+
+  for (let element = article?.parentElement; element && element.tagName !== "MAIN"; element = element.parentElement) {
+    const rect = element.getBoundingClientRect();
+    if (rect.width >= 400 && rect.width <= 700) candidates.push(rect);
+  }
+
+  const column = candidates.sort((a, b) => b.width - a.width)[0];
+  return column ? column.left + column.width / 2 : innerWidth / 2;
 }
 
 function renderHome(dashboard, sideNavigation) {
@@ -449,6 +473,7 @@ function focusDashboard(dashboard, mode) {
 function applyRules() {
   const sideNavigation = findSideNavigation();
   const dashboard = document.getElementById(DASHBOARD_ID) ?? createDashboard();
+  const nativeFeedNotice = document.getElementById(NATIVE_FEED_NOTICE_ID) ?? createNativeFeedNotice();
   const instagramUnlocked = activeUnlockDeadline(instagramUnlockUntil) > 0;
   const sessionState = currentInstagramSessionState(sideNavigation);
   const restriction = instagramUnlocked
@@ -467,6 +492,7 @@ function applyRules() {
         ? "home"
         : "native";
   const dashboardActive = mode !== "native";
+  const feedHidden = sessionState !== "signed-out" && !feedVisible(location.pathname, settings);
   const focusedSearch = !instagramUnlocked && settings.allowSearch && /^\/explore(?:\/|$)/.test(location.pathname);
   const nativeActionPermitted = dashboardActive && Boolean(permittedNativeAction);
   const { nativeDialog, nativePanel } = nativeActionPermitted
@@ -497,6 +523,11 @@ function applyRules() {
   }
   dashboard.classList.toggle(ACTIVE_CLASS, dashboardActive);
 
+  nativeFeedNotice.hidden = !instagramUnlocked || !feedHidden;
+  if (!nativeFeedNotice.hidden) {
+    nativeFeedNotice.style.setProperty("--freefeed-feed-center-x", `${Math.round(feedColumnCenter())}px`);
+  }
+
   dashboard.classList.toggle(NATIVE_DIALOG_CLASS, Boolean(nativeDialog));
   const recommendations = focusedSearch ? findSearchRecommendations() : [];
 
@@ -522,7 +553,7 @@ function applyRules() {
   document.body.classList.toggle(LOCKED_CLASS, dashboardActive);
   document.documentElement.classList.toggle(
     FEED_HIDDEN_CLASS,
-    sessionState !== "signed-out" && !feedVisible(location.pathname, settings)
+    feedHidden
   );
   document.documentElement.classList.toggle(RESTRICTED_CLASS, Boolean(restriction));
   document.body.classList.toggle(RESTRICTED_CLASS, Boolean(restriction));
