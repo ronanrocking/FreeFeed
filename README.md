@@ -30,6 +30,9 @@ Need normal Instagram for a minute? Open the extension popup and choose **2, 5, 
 
 ## Install
 
+Install from the Chrome Webstore : /detail/freefeed-instagram-reels/ibacnnffpajhcpcicodpaakibknepnmm?authuser=0&hl=en
+
+(Or, manually -)
 Requires desktop Chrome 105 or newer. FreeFeed works on `https://www.instagram.com/`; it doesn't change the Instagram mobile app.
 
 1. [Download the repository](https://github.com/ronanrocking/FreeFeed/archive/refs/heads/main.zip) and extract it, or clone it:
