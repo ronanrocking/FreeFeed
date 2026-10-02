@@ -1,6 +1,5 @@
 # FreeFeed
 
-**For when you need Instagram, but don't need its feed.**
 
 FreeFeed is a small Chrome extension that replaces Instagram's home page with a few useful shortcuts. Messages, search, notifications, posting, Stories, and your profile stay within reach. Feed and Reels are blocked by default.
 
